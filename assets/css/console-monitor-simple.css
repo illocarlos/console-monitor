@@ -7,6 +7,11 @@
    BOTÓN FLOTANTE Y ANIMACIONES
 ======================================== */
 
+    html #wpadminbar {
+        position: fixed !important;
+    }
+
+
 .cm-floating-container {
     position: fixed;
     bottom: 20px;
