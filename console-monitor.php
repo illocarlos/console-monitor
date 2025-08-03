@@ -3,7 +3,7 @@
  * Plugin Name: Console Monitor Pro
  * Plugin URI: https://github.com/tu-usuario/console-monitor-pro
  * Description: Terminal de debugging y visor móvil flotante
- * Version: 2.0
+ * Version: 2.1
  * Author: Tu Nombre
  * License: GPL v2 or later
  * Text Domain: console-monitor-pro
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Definir constantes del plugin
-define('CONSOLE_MONITOR_VERSION', '2.0');
+define('CONSOLE_MONITOR_VERSION', '2.1');
 define('CONSOLE_MONITOR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CONSOLE_MONITOR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CONSOLE_MONITOR_ASSETS_URL', CONSOLE_MONITOR_PLUGIN_URL . 'assets/');
@@ -106,7 +106,7 @@ class ConsoleMonitorPro {
     }
     
     /**
-     * Inyectar interceptor de console
+     * Inyectar interceptor de console CON DEBOUNCING MEJORADO
      */
     public function inject_console_interceptor() {
         if (!current_user_can('manage_options')) {
@@ -114,7 +114,7 @@ class ConsoleMonitorPro {
         }
         ?>
         <script type="text/javascript">
-        // Console Monitor - Interceptor
+        // Console Monitor - Interceptor CON DEBOUNCING
         window.CMPro = window.CMPro || {};
         window.CMPro.logs = [];
         
@@ -127,7 +127,12 @@ class ConsoleMonitorPro {
                 info: console.info
             };
             
-            // Función para capturar logs
+            // NUEVO: Sistema de debouncing
+            const logBuffer = new Map();
+            const DEBOUNCE_TIME = 50; // ms
+            let debounceTimer = null;
+            
+            // Función para capturar logs CON DEBOUNCING
             function capture(type, args) {
                 const message = Array.from(args).map(arg => {
                     if (typeof arg === 'object') {
@@ -137,11 +142,27 @@ class ConsoleMonitorPro {
                     return String(arg);
                 }).join(' ');
                 
+                // NUEVO: Crear key única para detectar duplicados
+                const logKey = `${type}:${message}`;
+                const now = Date.now();
+                
+                // Si es el mismo log muy seguido, agregar contador
+                if (logBuffer.has(logKey)) {
+                    const existing = logBuffer.get(logKey);
+                    if (now - existing.lastTime < DEBOUNCE_TIME) {
+                        existing.count++;
+                        existing.lastTime = now;
+                        return; // No agregar duplicado aún
+                    }
+                }
+                
                 const entry = {
                     type: type,
                     message: message,
                     time: new Date().toLocaleTimeString(),
-                    source: ''
+                    source: '',
+                    count: 1,
+                    lastTime: now
                 };
                 
                 // Stack trace simple
@@ -161,9 +182,32 @@ class ConsoleMonitorPro {
                     }
                 } catch(e) {}
                 
-                window.CMPro.logs.push(entry);
+                logBuffer.set(logKey, entry);
                 
-                // Limitar buffer
+                // NUEVO: Debounce el flush de logs
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(flushLogBuffer, DEBOUNCE_TIME);
+            }
+            
+            // NUEVO: Función para hacer flush del buffer
+            function flushLogBuffer() {
+                logBuffer.forEach((entry, key) => {
+                    // Si hay múltiples ocurrencias, agregar contador al mensaje
+                    if (entry.count > 1) {
+                        entry.message += ` (×${entry.count})`;
+                    }
+                    
+                    window.CMPro.logs.push({
+                        type: entry.type,
+                        message: entry.message,
+                        time: entry.time,
+                        source: entry.source
+                    });
+                });
+                
+                logBuffer.clear();
+                
+                // Limitar buffer global
                 if (window.CMPro.logs.length > 100) {
                     window.CMPro.logs = window.CMPro.logs.slice(-80);
                 }

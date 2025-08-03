@@ -1,6 +1,7 @@
 /* 
  * Console Monitor Pro - CSS Simplificado Completo
  * Estilos para botón flotante, terminal y simulador móvil/tablet
+ * NUEVO: Sistema de filtros
  */
 
 /* ========================================
@@ -384,6 +385,155 @@
 }
 
 /* ========================================
+   NUEVO: SISTEMA DE FILTROS
+======================================== */
+
+.cm-filter-bar {
+    background: #2c2c2c;
+    padding: 12px 16px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.cm-filter-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.cm-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #bdc3c7;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    min-width: 60px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.cm-filter-btn:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.cm-filter-btn.active {
+    background: var(--filter-color, #667eea);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border-color: var(--filter-color, #667eea);
+}
+
+.cm-filter-btn.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.cm-filter-icon {
+    font-size: 12px;
+    line-height: 1;
+}
+
+.cm-filter-label {
+    font-weight: 600;
+}
+
+.cm-filter-count {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+    min-width: 16px;
+    text-align: center;
+}
+
+.cm-filter-btn.active .cm-filter-count {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Colores específicos para cada filtro cuando están activos */
+.cm-filter-btn[data-filter="all"].active {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.cm-filter-btn[data-filter="console"].active {
+    background: #3498db;
+    border-color: #3498db;
+}
+
+.cm-filter-btn[data-filter="php"].active {
+    background: #8e44ad;
+    border-color: #8e44ad;
+}
+
+/* NUEVOS: 4 FILTROS CRÍTICOS */
+.cm-filter-btn[data-filter="database"].active {
+    background: #d32f2f;
+    border-color: #d32f2f;
+}
+
+.cm-filter-btn[data-filter="plugins"].active {
+    background: #7b1fa2;
+    border-color: #7b1fa2;
+}
+
+.cm-filter-btn[data-filter="resources"].active {
+    background: #ff6f00;
+    border-color: #ff6f00;
+}
+
+.cm-filter-btn[data-filter="theme"].active {
+    background: #388e3c;
+    border-color: #388e3c;
+}
+
+/* FILTROS ORIGINALES */
+.cm-filter-btn[data-filter="cors"].active {
+    background: #e74c3c;
+    border-color: #e74c3c;
+}
+
+.cm-filter-btn[data-filter="ajax"].active {
+    background: #f39c12;
+    border-color: #f39c12;
+}
+
+.cm-filter-btn[data-filter="js"].active {
+    background: #f1c40f;
+    border-color: #f1c40f;
+    color: #2c3e50;
+}
+
+.cm-filter-btn[data-filter="deprecation"].active {
+    background: #ff9500;
+    border-color: #ff9500;
+}
+
+.cm-filter-btn[data-filter="fatal"].active {
+    background: #c0392b;
+    border-color: #c0392b;
+}
+
+.cm-filter-btn[data-filter="security"].active {
+    background: #8b0000;
+    border-color: #8b0000;
+}
+
+/* ========================================
    BODY DE PANELES
 ======================================== */
 
@@ -425,6 +575,7 @@
     align-items: flex-start;
     gap: 8px;
     animation: slideIn 0.3s ease;
+    position: relative;
 }
 
 @keyframes slideIn {
@@ -436,6 +587,57 @@
         opacity: 1;
         transform: translateX(0);
     }
+}
+
+/* NUEVO: Bordes de colores para categorías */
+.cm-log-item.cm-category-console {
+    border-left: 3px solid #3498db;
+}
+
+.cm-log-item.cm-category-php {
+    border-left: 3px solid #8e44ad;
+}
+
+/* NUEVOS: 4 FILTROS CRÍTICOS */
+.cm-log-item.cm-category-database {
+    border-left: 3px solid #d32f2f;
+}
+
+.cm-log-item.cm-category-plugins {
+    border-left: 3px solid #7b1fa2;
+}
+
+.cm-log-item.cm-category-resources {
+    border-left: 3px solid #ff6f00;
+}
+
+.cm-log-item.cm-category-theme {
+    border-left: 3px solid #388e3c;
+}
+
+/* FILTROS ORIGINALES */
+.cm-log-item.cm-category-cors {
+    border-left: 3px solid #e74c3c;
+}
+
+.cm-log-item.cm-category-ajax {
+    border-left: 3px solid #f39c12;
+}
+
+.cm-log-item.cm-category-js {
+    border-left: 3px solid #f1c40f;
+}
+
+.cm-log-item.cm-category-deprecation {
+    border-left: 3px solid #ff9500;
+}
+
+.cm-log-item.cm-category-fatal {
+    border-left: 3px solid #c0392b;
+}
+
+.cm-log-item.cm-category-security {
+    border-left: 3px solid #8b0000;
 }
 
 .cm-log-type {
@@ -486,6 +688,7 @@
     margin-top: 4px;
     font-size: 10px;
     color: #888;
+    align-items: center;
 }
 
 .cm-log-time {
@@ -494,6 +697,15 @@
 
 .cm-log-source {
     color: #95a5a6;
+}
+
+/* NUEVO: Icono de categoría en los logs */
+.cm-log-category {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: help;
 }
 
 /* ========================================
@@ -707,6 +919,22 @@
     .cm-iphone.tablet-mode {
         width: 400px;
     }
+    
+    /* Filtros más compactos en tablets */
+    .cm-filter-bar {
+        padding: 8px 12px;
+        gap: 4px;
+    }
+    
+    .cm-filter-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+        min-width: 50px;
+    }
+    
+    .cm-filter-label {
+        display: none; /* Ocultar etiquetas en pantallas medianas */
+    }
 }
 
 @media (max-width: 768px) {
@@ -734,6 +962,27 @@
     .cm-iphone.show {
         transform: none !important;
     }
+    
+    /* Filtros aún más compactos en móviles */
+    .cm-filter-bar {
+        padding: 6px 8px;
+        gap: 3px;
+    }
+    
+    .cm-filter-btn {
+        padding: 3px 6px;
+        font-size: 9px;
+        min-width: 40px;
+    }
+    
+    .cm-filter-icon {
+        font-size: 11px;
+    }
+    
+    .cm-filter-count {
+        font-size: 8px;
+        padding: 1px 4px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -750,6 +999,27 @@
         width: 24px;
         height: 24px;
         font-size: 10px;
+    }
+    
+    /* Filtros ultra compactos - solo iconos */
+    .cm-filter-bar {
+        padding: 4px 6px;
+        gap: 2px;
+    }
+    
+    .cm-filter-btn {
+        padding: 2px 4px;
+        min-width: 32px;
+        border-radius: 12px;
+    }
+    
+    .cm-filter-label {
+        display: none; /* Solo iconos en móviles pequeños */
+    }
+    
+    .cm-filter-count {
+        font-size: 7px;
+        min-width: 14px;
     }
 }
 
@@ -798,6 +1068,22 @@
     100% { transform: rotate(90deg) scale(1); }
 }
 
+/* NUEVO: Animación para cambio de filtros */
+.cm-filter-btn {
+    animation: filterFadeIn 0.2s ease;
+}
+
+@keyframes filterFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 /* ========================================
    UTILIDADES
 ======================================== */
@@ -817,7 +1103,8 @@
     .cm-floating-btn,
     .cm-panel,
     .cm-log-item,
-    .cm-option-btn {
+    .cm-option-btn,
+    .cm-filter-btn {
         animation: none;
         transition: none;
     }

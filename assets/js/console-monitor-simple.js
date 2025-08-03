@@ -1,6 +1,7 @@
 /**
  * Console Monitor Pro - JavaScript Simplificado
  * Solo Terminal y iPhone/Tablet, nada más
+ * MEJORADO: Debouncing, RAF, Cache de logs + SISTEMA DE FILTROS
  */
 
 (function ($) {
@@ -17,6 +18,104 @@
             terminalLogs: [],
             iphoneOrientation: 'portrait',
             currentDevice: 'iphone-15-pro',
+
+            // NUEVO: Sistema de filtros AMPLIADO
+            activeFilter: 'all',
+            errorCategories: {
+                'all': {
+                    label: 'Todos',
+                    icon: '📋',
+                    count: 0,
+                    color: '#667eea'
+                },
+                'console': {
+                    label: 'Console',
+                    icon: '💬',
+                    count: 0,
+                    color: '#3498db',
+                    keywords: ['console.log', 'console.info']
+                },
+                'php': {
+                    label: 'PHP',
+                    icon: '🐘',
+                    count: 0,
+                    color: '#8e44ad',
+                    keywords: ['php', 'fatal error', 'parse error', 'warning:', 'notice:', '.php']
+                },
+                // NUEVOS: 4 FILTROS CRÍTICOS
+                'database': {
+                    label: 'Database',
+                    icon: '🗄️',
+                    count: 0,
+                    color: '#d32f2f',
+                    keywords: ['mysql', 'database', 'connection', 'sql', 'wpdb', 'duplicate entry', 'table doesn\'t exist', 'db_connect_error', 'query']
+                },
+                'plugins': {
+                    label: 'Plugins',
+                    icon: '🔌',
+                    count: 0,
+                    color: '#7b1fa2',
+                    keywords: ['plugin', 'wp-content/plugins', 'activation', 'deactivation', 'conflict', 'plugin_', 'activate_plugin']
+                },
+                'resources': {
+                    label: 'Resources',
+                    icon: '📦',
+                    count: 0,
+                    color: '#ff6f00',
+                    keywords: ['404', 'failed to load', 'net::', 'timeout', 'resource', 'not found', 'loading', 'cdn', 'asset']
+                },
+                'theme': {
+                    label: 'Theme',
+                    icon: '🎨',
+                    count: 0,
+                    color: '#388e3c',
+                    keywords: ['wp-content/themes', 'template', 'stylesheet', 'theme', 'get_template', 'template_redirect']
+                },
+                // FILTROS ORIGINALES
+                'cors': {
+                    label: 'CORS',
+                    icon: '🚫',
+                    count: 0,
+                    color: '#e74c3c',
+                    keywords: ['cors', 'cross-origin', 'access-control', 'blocked by cors']
+                },
+                'ajax': {
+                    label: 'AJAX',
+                    icon: '🌐',
+                    count: 0,
+                    color: '#f39c12',
+                    keywords: ['xmlhttprequest', 'fetch', 'ajax', 'admin-ajax.php', 'wp-admin/admin-ajax.php']
+                },
+                'js': {
+                    label: 'JavaScript',
+                    icon: '⚡',
+                    count: 0,
+                    color: '#f1c40f',
+                    keywords: ['uncaught', 'syntaxerror', 'referenceerror', 'typeerror', 'undefined is not']
+                },
+                'deprecation': {
+                    label: 'Deprecated',
+                    icon: '⚠️',
+                    count: 0,
+                    color: '#ff9500',
+                    keywords: ['deprecated', 'function is deprecated', 'wp_', 'legacy']
+                },
+                'fatal': {
+                    label: 'Fatal',
+                    icon: '💀',
+                    count: 0,
+                    color: '#c0392b',
+                    keywords: ['fatal error', 'maximum execution', 'out of memory', 'call to undefined']
+                },
+                'security': {
+                    label: 'Security',
+                    icon: '🔒',
+                    count: 0,
+                    color: '#8b0000',
+                    keywords: ['nonce', 'unauthorized', 'permission', 'security', 'csrf']
+                }
+            },
+
             deviceSpecs: {
                 // iPhones
                 'iphone-15-pro-max': { width: 430, height: 932, name: 'iPhone 15 Pro Max', type: 'phone' },
@@ -69,13 +168,212 @@
             offsetY: 0
         },
 
+        // Cache de logs
+        logCache: {
+            renderedCount: 0,
+            lastRenderTime: 0,
+            fragment: null
+        },
+
+        // ========================================
+        // NUEVAS FUNCIONES PARA FILTROS
+        // ========================================
+
+        // MEJORADO: Categorizar un log según su contenido
+        categorizeLog: function (log) {
+            const message = log.message.toLowerCase();
+            const source = (log.source || '').toLowerCase();
+            const type = log.type.toLowerCase();
+
+            // Priorizar detección específica para los 4 críticos nuevos
+
+            // 1. Database - MUY ESPECÍFICO
+            if (message.includes('mysql') || message.includes('database') ||
+                message.includes('wpdb') || message.includes('sql') ||
+                message.includes('db_connect') || message.includes('duplicate entry') ||
+                message.includes('table') && (message.includes('exist') || message.includes('found'))) {
+                return 'database';
+            }
+
+            // 2. Plugins - DETECTAR POR PATH Y KEYWORDS
+            if (source.includes('wp-content/plugins') ||
+                message.includes('plugin') || message.includes('activate_plugin') ||
+                message.includes('deactivation') || message.includes('activation')) {
+                return 'plugins';
+            }
+
+            // 3. Theme - DETECTAR POR PATH Y KEYWORDS
+            if (source.includes('wp-content/themes') ||
+                message.includes('template') || message.includes('stylesheet') ||
+                message.includes('get_template') || message.includes('theme')) {
+                return 'theme';
+            }
+
+            // 4. Resources - 404s Y LOADING ERRORS
+            if (message.includes('404') || message.includes('failed to load') ||
+                message.includes('net::') || message.includes('timeout') ||
+                message.includes('not found') || message.includes('loading') ||
+                (type === 'error' && (message.includes('css') || message.includes('js') || message.includes('image')))) {
+                return 'resources';
+            }
+
+            // Resto de categorías existentes con detección mejorada
+            for (const [category, config] of Object.entries(this.state.errorCategories)) {
+                if (category === 'all') continue;
+
+                // Skip los 4 críticos que ya detectamos arriba
+                if (['database', 'plugins', 'theme', 'resources'].includes(category)) continue;
+
+                if (config.keywords) {
+                    for (const keyword of config.keywords) {
+                        if (message.includes(keyword) || source.includes(keyword)) {
+                            return category;
+                        }
+                    }
+                }
+            }
+
+            // Fallback mejorado por tipo de log
+            switch (type) {
+                case 'log':
+                case 'info':
+                    return 'console';
+                case 'error':
+                    // Detectar si es error de PHP por source
+                    if (source.includes('.php')) {
+                        return 'php';
+                    }
+                    // Si menciona JavaScript específicamente
+                    if (message.includes('script') || message.includes('javascript')) {
+                        return 'js';
+                    }
+                    return 'js'; // Default para errores genéricos
+                case 'warn':
+                case 'warning':
+                    // Los warnings de PHP suelen ser deprecations
+                    if (source.includes('.php') || message.includes('deprecated')) {
+                        return 'deprecation';
+                    }
+                    return 'deprecation';
+                default:
+                    return 'js';
+            }
+        },
+
+        // Actualizar contadores de categorías
+        updateCategoryCounters: function () {
+            // Reset counters
+            Object.keys(this.state.errorCategories).forEach(key => {
+                this.state.errorCategories[key].count = 0;
+            });
+
+            // Contar por categoría
+            this.state.terminalLogs.forEach(log => {
+                const category = this.categorizeLog(log);
+                if (this.state.errorCategories[category]) {
+                    this.state.errorCategories[category].count++;
+                }
+                this.state.errorCategories.all.count++;
+            });
+
+            // Actualizar UI de filtros
+            this.updateFilterButtons();
+        },
+
+        // Crear HTML de botones de filtro
+        renderFilterButtons: function () {
+            const filtersHtml = Object.entries(this.state.errorCategories).map(([key, config]) => {
+                const isActive = this.state.activeFilter === key;
+                const hasLogs = config.count > 0;
+
+                return `
+                    <button class="cm-filter-btn ${isActive ? 'active' : ''} ${!hasLogs ? 'disabled' : ''}" 
+                            data-filter="${key}"
+                            style="--filter-color: ${config.color}"
+                            title="${config.label} (${config.count})">
+                        <span class="cm-filter-icon">${config.icon}</span>
+                        <span class="cm-filter-label">${config.label}</span>
+                        <span class="cm-filter-count">${config.count}</span>
+                    </button>
+                `;
+            }).join('');
+
+            return `<div class="cm-filter-bar">${filtersHtml}</div>`;
+        },
+
+        // Actualizar botones de filtro
+        updateFilterButtons: function () {
+            const $filterBar = $('.cm-filter-bar');
+            if ($filterBar.length === 0) return;
+
+            Object.entries(this.state.errorCategories).forEach(([key, config]) => {
+                const $btn = $filterBar.find(`[data-filter="${key}"]`);
+                const hasLogs = config.count > 0;
+
+                $btn.find('.cm-filter-count').text(config.count);
+                $btn.toggleClass('disabled', !hasLogs);
+                $btn.toggleClass('active', this.state.activeFilter === key);
+            });
+        },
+
+        // Obtener logs filtrados
+        getFilteredLogs: function () {
+            if (this.state.activeFilter === 'all') {
+                return this.state.terminalLogs;
+            }
+
+            return this.state.terminalLogs.filter(log => {
+                return this.categorizeLog(log) === this.state.activeFilter;
+            });
+        },
+
+        // Cambiar filtro activo
+        setActiveFilter: function (filter) {
+            if (this.state.activeFilter === filter) return;
+
+            this.state.activeFilter = filter;
+            this.logCache.renderedCount = 0; // Reset cache
+            this.logCache.fragment = null;
+            this.updateCategoryCounters();
+            this.renderLogs();
+
+            // Guardar filtro en localStorage
+            try {
+                localStorage.setItem('cm_active_filter', filter);
+            } catch (e) { }
+
+            console.log(`🔍 Filter changed to: ${filter}`);
+        },
+
+        // Restaurar filtro guardado
+        restoreActiveFilter: function () {
+            try {
+                const saved = localStorage.getItem('cm_active_filter');
+                if (saved && this.state.errorCategories[saved]) {
+                    this.state.activeFilter = saved;
+                }
+            } catch (e) { }
+        },
+
+        // ========================================
+        // FUNCIONES EXISTENTES (algunas modificadas)
+        // ========================================
+
         // Inicializar
         init: function () {
             this.cacheElements();
             this.bindEvents();
             this.setupDragging();
             this.loadInitialLogs();
-            this.restoreButtonPosition(); // Restaurar posición guardada
+            this.restoreButtonPosition();
+            this.restoreActiveFilter(); // NUEVO
+
+            // Inicializar cache de logs
+            this.logCache = {
+                renderedCount: 0,
+                lastRenderTime: 0,
+                fragment: null
+            };
 
             console.log('✅ Console Monitor initialized');
         },
@@ -115,6 +413,17 @@
                 e.preventDefault();
                 e.stopPropagation();
                 self.selectIphone();
+            });
+
+            // NUEVO: Click en botones de filtro
+            $(document).on('click', '.cm-filter-btn', function (e) {
+                e.preventDefault();
+                const filter = $(this).data('filter');
+                const hasLogs = !$(this).hasClass('disabled');
+
+                if (hasLogs) {
+                    self.setActiveFilter(filter);
+                }
             });
 
             // Cerrar paneles
@@ -331,7 +640,28 @@
             console.log('✅ Stopped dragging button');
         },
 
-        // Snap a la esquina más cercana
+        // Wrapper para animaciones suaves con requestAnimationFrame
+        animateWithRAF: function (callback, duration = 300) {
+            const start = performance.now();
+
+            const animate = (currentTime) => {
+                const elapsed = currentTime - start;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Easing suave
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+                callback(easeProgress);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            };
+
+            requestAnimationFrame(animate);
+        },
+
+        // Snap a la esquina más cercana usando requestAnimationFrame
         snapToCorner: function () {
             var rect = this.elements.$container[0].getBoundingClientRect();
             var centerX = rect.left + rect.width / 2;
@@ -368,13 +698,22 @@
             // Guardar la posición calculada para el localStorage
             this.currentPosition = position;
 
-            this.elements.$container.animate({
-                left: targetX + 'px',
-                top: targetY + 'px'
-            }, {
-                duration: 300,
-                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-            });
+            // Usar RAF en lugar de jQuery animate
+            const startX = parseFloat(this.elements.$container.css('left'));
+            const startY = parseFloat(this.elements.$container.css('top'));
+            const deltaX = targetX - startX;
+            const deltaY = targetY - startY;
+
+            const self = this;
+            this.animateWithRAF(function (progress) {
+                const currentX = startX + (deltaX * progress);
+                const currentY = startY + (deltaY * progress);
+
+                self.elements.$container.css({
+                    left: currentX + 'px',
+                    top: currentY + 'px'
+                });
+            }, 300);
         },
 
         // Toggle expandir botones
@@ -494,7 +833,7 @@
             var $iframe = $('#cm-iphone-iframe');
             var $screen = $('.cm-iphone-screen');
             var $frame = $('#cm-iphone-frame');
-            var $panel = $('#cm-iphone'); // El panel contenedor
+            var $panel = $('#cm-iphone');
 
             // Cambiar clases CSS según el tipo de dispositivo
             $frame.removeClass('device-phone device-tablet');
@@ -607,33 +946,101 @@
             this.getPhpLogs();
         },
 
-        // Renderizar logs
+        // MODIFICADO: Renderizar logs con sistema de cache Y FILTROS
         renderLogs: function () {
             var $container = this.elements.$logs;
             var self = this;
 
-            if (this.state.terminalLogs.length === 0) {
+            // Actualizar contadores primero
+            this.updateCategoryCounters();
+
+            // Obtener logs filtrados
+            var filteredLogs = this.getFilteredLogs();
+            var currentLogCount = filteredLogs.length;
+
+            if (currentLogCount === 0) {
+                const filterName = this.state.errorCategories[this.state.activeFilter].label;
                 $container.html(
                     '<div class="cm-logs-empty">' +
-                    '<div class="cm-logs-empty-icon">🐛</div>' +
-                    '<div class="cm-logs-empty-text">No hay logs aún<br>Ejecuta console.log() para ver resultados</div>' +
+                    '<div class="cm-logs-empty-icon">🔍</div>' +
+                    '<div class="cm-logs-empty-text">No hay logs de tipo "' + filterName + '"<br>Prueba con otro filtro o ejecuta código</div>' +
                     '</div>'
                 );
+
+                // Insertar filtros si no existen
+                if ($('.cm-filter-bar').length === 0) {
+                    $container.before(this.renderFilterButtons());
+                }
+
+                this.logCache.renderedCount = 0;
                 return;
             }
 
-            var html = '';
+            // Insertar filtros si no existen
+            if ($('.cm-filter-bar').length === 0) {
+                $container.before(this.renderFilterButtons());
+            }
 
-            this.state.terminalLogs.forEach(function (log) {
-                html += self.renderLogItem(log);
+            var now = performance.now();
+
+            // Para filtros: siempre re-render completo (cache se resetea al cambiar filtro)
+            var fragment = document.createDocumentFragment();
+
+            filteredLogs.forEach(function (log) {
+                var logElement = self.createLogElement(log);
+                fragment.appendChild(logElement);
             });
 
-            $container.html(html);
+            // Limpiar y agregar todo de una vez
+            $container.empty();
+            $container[0].appendChild(fragment);
+
+            this.logCache.fragment = fragment;
+            this.logCache.renderedCount = currentLogCount;
+            this.logCache.lastRenderTime = now;
+
+            // Scroll y contador
             $container.scrollTop($container[0].scrollHeight);
-            $('.cm-logs-count').text(this.state.terminalLogs.length + ' logs');
+
+            // Actualizar footer con info del filtro
+            const filterName = this.state.errorCategories[this.state.activeFilter].label;
+            const totalLogs = this.state.terminalLogs.length;
+            let footerText = `${currentLogCount} logs`;
+            if (this.state.activeFilter !== 'all') {
+                footerText += ` (${filterName} de ${totalLogs} totales)`;
+            }
+            $('.cm-logs-count').text(footerText);
+
+            console.log(`📊 Logs rendered: ${currentLogCount} filtered (${this.state.activeFilter}) - took ${(performance.now() - now).toFixed(2)}ms`);
         },
 
-        // Renderizar item de log
+        // Función helper para crear elementos de log
+        createLogElement: function (log) {
+            var typeClass = log.type.toLowerCase();
+            var time = log.time || log.timestamp || '';
+            var source = log.source || '';
+
+            // NUEVO: Agregar clase de categoría para styling
+            var category = this.categorizeLog(log);
+
+            var logDiv = document.createElement('div');
+            logDiv.className = `cm-log-item cm-category-${category}`;
+
+            logDiv.innerHTML =
+                '<span class="cm-log-type ' + typeClass + '">' + log.type.toUpperCase() + '</span>' +
+                '<div class="cm-log-content">' +
+                '<div class="cm-log-message">' + this.escapeHtml(log.message) + '</div>' +
+                '<div class="cm-log-meta">' +
+                '<span class="cm-log-time">' + time + '</span>' +
+                (source ? '<span class="cm-log-source">' + source + '</span>' : '') +
+                '<span class="cm-log-category" title="Categoría: ' + category + '">' + this.state.errorCategories[category].icon + '</span>' +
+                '</div>' +
+                '</div>';
+
+            return logDiv;
+        },
+
+        // Renderizar item de log (mantenido para compatibilidad)
         renderLogItem: function (log) {
             var typeClass = log.type.toLowerCase();
             var time = log.time || log.timestamp || '';
@@ -651,7 +1058,7 @@
                 '</div>';
         },
 
-        // Limpiar logs
+        // MODIFICADO: Limpiar logs y cache y filtros
         clearLogs: function () {
             var self = this;
 
@@ -665,6 +1072,14 @@
             }, function (response) {
                 if (response.success) {
                     self.state.terminalLogs = [];
+
+                    // Limpiar cache
+                    self.logCache.renderedCount = 0;
+                    self.logCache.fragment = null;
+
+                    // Reset filtro a 'all'
+                    self.state.activeFilter = 'all';
+
                     self.renderLogs();
                 }
             });
