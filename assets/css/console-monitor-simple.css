@@ -1,0 +1,819 @@
+/* 
+ * Console Monitor Pro - CSS Simplificado Completo
+ * Estilos para botón flotante, terminal y simulador móvil/tablet
+ */
+
+/* ========================================
+   BOTÓN FLOTANTE Y ANIMACIONES
+======================================== */
+
+.cm-floating-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px; /* Cambiado: por defecto a la izquierda */
+    z-index: 99998;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+}
+
+.cm-floating-container.dragging {
+    transition: none;
+    cursor: grabbing;
+    z-index: 99999;
+}
+
+.cm-floating-container.dragging .cm-floating-btn {
+    transform: scale(1.1);
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.8);
+}
+
+.cm-floating-btn {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    position: relative;
+    border: none;
+    outline: none;
+}
+
+.cm-floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+.cm-btn-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.cm-btn-icon {
+    font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.cm-btn-text {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+/* ========================================
+   BOTONES EXPANDIDOS
+======================================== */
+
+.cm-expanded-buttons {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cm-floating-container.expanded .cm-expanded-buttons {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.cm-floating-container.expanded .cm-floating-btn {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    transform: scale(0.8);
+    opacity: 0.3;
+}
+
+.cm-option-btn {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: scale(0);
+    opacity: 0;
+}
+
+.cm-option-btn.terminal {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    bottom: 80px;
+    right: 5px;
+}
+
+.cm-option-btn.iphone {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    bottom: 40px;
+    right: -40px;
+}
+
+.cm-floating-container.expanded .cm-option-btn {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.cm-floating-container.expanded .cm-option-btn.terminal {
+    transition-delay: 0.1s;
+}
+
+.cm-floating-container.expanded .cm-option-btn.iphone {
+    transition-delay: 0.2s;
+}
+
+.cm-option-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================================
+   TRANSFORMACIONES DE BOTÓN
+======================================== */
+
+.cm-floating-container.transforming-terminal .cm-floating-btn {
+    animation: morphToTerminal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.cm-floating-container.transforming-iphone .cm-floating-btn {
+    animation: morphToIphone 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.cm-floating-container.terminal-active .cm-floating-btn {
+    width: 80px;
+    height: 50px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.cm-floating-container.iphone-active .cm-floating-btn {
+    width: 50px;
+    height: 90px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+}
+
+/* ========================================
+   KEYFRAMES PARA TRANSFORMACIONES
+======================================== */
+
+@keyframes morphToTerminal {
+    0% {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: scale(1);
+    }
+    50% {
+        width: 65px;
+        height: 55px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        transform: scale(1.1);
+    }
+    100% {
+        width: 80px;
+        height: 50px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        transform: scale(1);
+    }
+}
+
+@keyframes morphToIphone {
+    0% {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: scale(1);
+    }
+    50% {
+        width: 45px;
+        height: 75px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+        transform: scale(1.1);
+    }
+    100% {
+        width: 50px;
+        height: 90px;
+        border-radius: 25px;
+        background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   PANELES PRINCIPALES
+======================================== */
+
+.cm-panel {
+    position: fixed;
+    background: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 99990;
+    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+    display: none;
+    flex-direction: column;
+    border: 1px solid #333;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cm-panel.show {
+    display: flex;
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Panel Terminal - Superpuesto a la izquierda */
+.cm-terminal {
+    top: 20px;
+    left: 20px;
+    transform: translateX(-100%);
+    width: 45%;
+    max-width: 500px;
+    height: calc(100vh - 40px);
+    max-height: none;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cm-terminal.show {
+    transform: translateX(0);
+}
+
+/* Panel iPhone/Tablet - Superpuesto a la derecha */
+.cm-iphone {
+    top: 20px;
+    right: 20px;
+    transform: translateX(100%);
+    width: 380px; /* Default para phones */
+    height: calc(100vh - 40px);
+    max-height: none;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ancho específico para tablets - mucho más ancho */
+.cm-iphone.tablet-mode {
+    width: 500px; /* Más ancho para tablets */
+}
+
+.cm-iphone.show {
+    transform: translateX(0);
+}
+
+/* ========================================
+   HEADER DE PANELES
+======================================== */
+
+.cm-panel-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    padding: 12px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    border-bottom: 1px solid #444;
+}
+
+.cm-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.cm-title-icon {
+    font-size: 16px;
+}
+
+.cm-panel-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.cm-panel-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.cm-panel-controls button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* ========================================
+   SELECTOR DE DISPOSITIVOS
+======================================== */
+
+.cm-device-selector {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 8px;
+    min-width: 180px;
+}
+
+.cm-device-selector:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.cm-device-selector option {
+    background: #2c3e50;
+    color: white;
+    padding: 4px;
+}
+
+.cm-device-selector optgroup {
+    background: #34495e;
+    color: #ecf0f1;
+    font-weight: bold;
+    padding: 2px;
+}
+
+.cm-device-selector optgroup option {
+    background: #2c3e50;
+    color: #bdc3c7;
+    font-weight: normal;
+    padding-left: 8px;
+}
+
+/* ========================================
+   BODY DE PANELES
+======================================== */
+
+.cm-panel-body {
+    flex: 1;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+/* ========================================
+   TERMINAL LOGS
+======================================== */
+
+.cm-logs-container {
+    height: 100%;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.cm-logs-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cm-logs-container::-webkit-scrollbar-track {
+    background: #2c2c2c;
+}
+
+.cm-logs-container::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+.cm-log-item {
+    padding: 8px 16px;
+    border-bottom: 1px solid #2c2c2c;
+    font-size: 12px;
+    line-height: 1.4;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.cm-log-type {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    min-width: 40px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.cm-log-type.log {
+    background: #3498db;
+    color: white;
+}
+
+.cm-log-type.error {
+    background: #e74c3c;
+    color: white;
+}
+
+.cm-log-type.warn {
+    background: #f39c12;
+    color: white;
+}
+
+.cm-log-type.info {
+    background: #27ae60;
+    color: white;
+}
+
+.cm-log-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.cm-log-message {
+    color: #e6e6e6;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.cm-log-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 10px;
+    color: #888;
+}
+
+.cm-log-time {
+    color: #7f8c8d;
+}
+
+.cm-log-source {
+    color: #95a5a6;
+}
+
+/* ========================================
+   IPHONE/TABLET FRAME
+======================================== */
+
+.cm-iphone-frame {
+    background: #1a1a1a;
+    border-radius: 25px; /* Por defecto para phones */
+    padding: 15px;
+    margin: 20px;
+    position: relative;
+    height: calc(100% - 40px);
+    width: calc(100% - 40px);
+    box-shadow: inset 0 0 0 2px #333;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+
+/* Estilos específicos para teléfonos */
+.cm-iphone-frame.device-phone {
+    border-radius: 25px;
+    padding: 15px;
+    /* Forma más vertical y estrecha */
+}
+
+/* Estilos específicos para tablets - MARCO MÁS ANCHO Y RECTANGULAR */
+.cm-iphone-frame.device-tablet {
+    border-radius: 12px; /* Mucho menos redondeado */
+    padding: 20px 25px; /* Más padding horizontal */
+    background: #1e1e1e;
+    box-shadow: inset 0 0 0 2px #444;
+    /* Proporción más horizontal para tablets */
+}
+
+.cm-iphone-frame.landscape {
+    border-radius: 15px;
+    padding: 10px 20px;
+}
+
+/* Tablet en landscape - FORMA MUY RECTANGULAR */
+.cm-iphone-frame.device-tablet.landscape {
+    border-radius: 8px; /* Casi cuadrado */
+    padding: 15px 30px; /* Extra padding horizontal */
+}
+
+/* Tablet screen en landscape también más cuadrado */
+.cm-iphone-frame.device-tablet.landscape .cm-iphone-screen {
+    border-radius: 4px; /* Muy cuadrado */
+}
+
+.cm-iphone-screen {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 15px; /* Por defecto para phones */
+    overflow: hidden;
+    position: relative;
+    display: block;
+    flex: 1;
+    transition: all 0.3s ease;
+}
+
+/* Screen específico para tablets - MUCHO menos redondeado */
+.cm-iphone-frame.device-tablet .cm-iphone-screen {
+    border-radius: 6px; /* Más cuadrado que los phones */
+}
+
+/* Phone screen mantiene esquinas más redondeadas */
+.cm-iphone-frame.device-phone .cm-iphone-screen {
+    border-radius: 15px;
+}
+
+.cm-iphone-screen iframe {
+    border: none;
+    background: white;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.cm-iphone-notch {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 20px;
+    background: #1a1a1a;
+    border-radius: 0 0 15px 15px;
+    z-index: 10;
+    transition: all 0.3s ease;
+}
+
+/* Ocultar notch en tablets */
+.cm-iphone-frame.device-tablet .cm-iphone-notch {
+    display: none;
+}
+
+.cm-iphone-home-indicator {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 4px;
+    background: #666;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Home indicator diferente para tablets */
+.cm-iphone-frame.device-tablet .cm-iphone-home-indicator {
+    width: 160px; /* Más ancho en tablets */
+    height: 2px;   /* Más fino */
+    background: #555;
+    border-radius: 1px;
+}
+
+/* ========================================
+   FOOTER DE PANELES
+======================================== */
+
+.cm-panel-footer {
+    background: #2c2c2c;
+    padding: 8px 16px;
+    border-radius: 0 0 12px 12px;
+    border-top: 1px solid #444;
+    font-size: 11px;
+    color: #bdc3c7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cm-logs-count {
+    color: #bdc3c7;
+}
+
+/* ========================================
+   OVERLAY
+======================================== */
+
+.cm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    z-index: 99989;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.cm-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========================================
+   ESTADOS EMPTY
+======================================== */
+
+.cm-logs-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.cm-logs-empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.cm-logs-empty-text {
+    font-size: 14px;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 1024px) {
+    .cm-terminal {
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: none;
+        transform: translateY(-100%);
+    }
+    
+    .cm-terminal.show {
+        transform: translateY(0);
+    }
+    
+    .cm-iphone {
+        right: 10px;
+        width: 300px; /* Más pequeño en tablets reales */
+    }
+    
+    /* Tablets en modo tablet siguen siendo anchas pero más pequeñas */
+    .cm-iphone.tablet-mode {
+        width: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cm-floating-container {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .cm-floating-btn {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .cm-panel {
+        top: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        height: calc(100vh - 20px) !important;
+        max-height: none !important;
+        transform: none !important;
+    }
+    
+    .cm-terminal.show,
+    .cm-iphone.show {
+        transform: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .cm-device-selector {
+        min-width: 120px;
+        font-size: 10px;
+    }
+    
+    .cm-panel-controls {
+        gap: 4px;
+    }
+    
+    .cm-panel-controls button {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+}
+
+/* ========================================
+   ANIMACIONES ESPECIALES
+======================================== */
+
+.cm-panel.entering {
+    animation: cm-panel-enter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.cm-panel.leaving {
+    animation: cm-panel-leave 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes cm-panel-enter {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes cm-panel-leave {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px);
+    }
+}
+
+/* Transición de rotación */
+.cm-iphone-frame.rotating {
+    animation: cm-rotate-device 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cm-rotate-device {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(45deg) scale(0.9); }
+    100% { transform: rotate(90deg) scale(1); }
+}
+
+/* ========================================
+   UTILIDADES
+======================================== */
+
+.cm-hidden {
+    display: none !important;
+}
+
+.cm-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Reducir movimiento para usuarios sensibles */
+@media (prefers-reduced-motion: reduce) {
+    .cm-floating-container,
+    .cm-floating-btn,
+    .cm-panel,
+    .cm-log-item,
+    .cm-option-btn {
+        animation: none;
+        transition: none;
+    }
+}
