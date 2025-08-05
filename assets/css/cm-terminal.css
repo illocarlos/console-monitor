@@ -1,104 +1,46 @@
 /* 
- * Console Monitor Pro - CSS SOLO PARA NOTAS Y MARCADORES
- * Archivo: assets/css/console-monitor-notes.css
- * Se incluye ADEMÁS del archivo principal console-monitor-simple.css
+ * Console Monitor Pro - CSS TERMINAL
+ * assets/css/cm-terminal.css
+ * Estilos solo para: terminal de logs, consola de debugging
+ * Requiere: cm-core.css
  */
 
 /* ========================================
-   BOTÓN DE NOTAS EN MENÚ EXPANDIDO
+   PANEL TERMINAL - POSICIONADO A LA IZQUIERDA
 ======================================== */
 
-.cm-option-btn.notes {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    bottom: 120px; /* Más arriba que terminal e iphone */
-    right: -10px;
-}
-
-.cm-floating-container.expanded .cm-option-btn.notes {
-    transition-delay: 0.05s; /* Aparece primero */
-}
-
-.cm-option-btn.notes:hover {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-}
-
-/* Estado activo del botón cuando panel notas está abierto */
-.cm-floating-container.notes-active .cm-floating-btn {
-    width: 80px;
-    height: 50px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-}
-
-/* Transformación hacia modo notas */
-.cm-floating-container.transforming-notes .cm-floating-btn {
-    animation: morphToNotes 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-}
-
-@keyframes morphToNotes {
-    0% {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        transform: scale(1);
-    }
-    50% {
-        width: 65px;
-        height: 55px;
-        border-radius: 20px;
-        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-        transform: scale(1.1);
-    }
-    100% {
-        width: 80px;
-        height: 50px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-        transform: scale(1);
-    }
-}
-
-/* ========================================
-   PANEL DE NOTAS
-======================================== */
-
-.cm-notes {
+.cm-terminal {
     top: 20px;
-    right: 20px;
-    transform: translateX(100%);
-    width: 420px;
+    left: 20px;
+    transform: translateX(-100%);
+    width: 500px;
     height: calc(100vh - 40px);
     max-height: none;
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cm-notes.show {
+.cm-terminal.show {
     transform: translateX(0);
 }
 
 /* ========================================
-   HEADER DE NOTAS CON ACCIONES
+   HEADER DEL TERMINAL CON CONTROLES
 ======================================== */
 
-.cm-notes-header-actions {
+.cm-terminal-header-actions {
     display: flex;
     gap: 8px;
     align-items: center;
     margin-right: 10px;
 }
 
-.cm-btn-add-note {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    color: white;
-    border: none;
+.cm-btn-clear {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
     border-radius: 6px;
-    padding: 6px 12px;
+    padding: 4px 8px;
     font-size: 11px;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -106,571 +48,746 @@
     gap: 4px;
 }
 
-.cm-btn-add-note:hover {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+.cm-btn-clear:hover {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+    color: white;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
 }
 
 /* ========================================
-   LISTA DE NOTAS
+   CONTENEDOR DE LOGS
 ======================================== */
 
-.cm-notes-container {
+.cm-logs-container {
     height: 100%;
     overflow-y: auto;
     padding: 0;
-    background: #1a1a1a;
-}
-
-.cm-notes-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.cm-notes-container::-webkit-scrollbar-track {
-    background: #2c2c2c;
-}
-
-.cm-notes-container::-webkit-scrollbar-thumb {
-    background: #555;
-    border-radius: 3px;
-}
-
-.cm-note-item {
-    background: #252525;
-    margin: 12px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    transition: all 0.3s ease;
+    background: #0d1117;
+    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Consolas', monospace;
     position: relative;
-    overflow: hidden;
-    animation: noteSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes noteSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+.cm-logs-container::-webkit-scrollbar {
+    width: 8px;
 }
 
-.cm-note-item:hover {
-    border-color: #27ae60;
-    box-shadow: 0 4px 20px rgba(39, 174, 96, 0.15);
-    transform: translateY(-2px);
+.cm-logs-container::-webkit-scrollbar-track {
+    background: #161b22;
 }
 
-.cm-note-item.has-marker {
-    border-left: 4px solid #f39c12;
-    background: linear-gradient(90deg, rgba(243, 156, 18, 0.1) 0%, #252525 20%);
-}
-
-.cm-note-header {
-    padding: 12px 16px 8px 16px;
-    border-bottom: 1px solid #333;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.cm-note-title {
-    color: #ecf0f1;
-    font-size: 13px;
-    font-weight: 600;
-    flex: 1;
-    margin-right: 10px;
-    word-break: break-word;
-}
-
-.cm-note-actions {
-    display: flex;
-    gap: 4px;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
-}
-
-.cm-note-item:hover .cm-note-actions {
-    opacity: 1;
-}
-
-.cm-note-action-btn {
-    width: 24px;
-    height: 24px;
-    border: none;
+.cm-logs-container::-webkit-scrollbar-thumb {
+    background: #30363d;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #bdc3c7;
-    cursor: pointer;
-    font-size: 11px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-.cm-note-action-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-}
-
-.cm-note-action-btn.marker {
-    color: #f39c12;
-}
-
-.cm-note-action-btn.marker.active {
-    background: rgba(243, 156, 18, 0.2);
-    color: #f39c12;
-    box-shadow: 0 0 8px rgba(243, 156, 18, 0.3);
-}
-
-.cm-note-action-btn.delete {
-    color: #e74c3c;
-}
-
-.cm-note-action-btn.delete:hover {
-    background: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
+.cm-logs-container::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
 }
 
 /* ========================================
-   CONTENIDO DE NOTAS
+   LOG ENTRIES CON TODOS LOS TIPOS
 ======================================== */
 
-.cm-note-content {
-    padding: 16px;
-}
-
-.cm-note-description {
-    color: #bdc3c7;
-    font-size: 12px;
-    line-height: 1.5;
-    margin-bottom: 12px;
-    word-break: break-word;
-    white-space: pre-wrap;
-}
-
-.cm-note-checklist {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.cm-checklist-item {
+.cm-log-entry {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.3);
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 6px 0;
-    transition: all 0.2s ease;
-}
-
-.cm-checklist-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    padding: 6px 8px;
-    margin: 2px -8px 10px -8px;
-}
-
-.cm-checklist-checkbox {
-    width: 16px;
-    height: 16px;
-    border: 2px solid #555;
-    border-radius: 3px;
-    cursor: pointer;
-    flex-shrink: 0;
-    margin-top: 2px;
-    transition: all 0.3s ease;
-    position: relative;
-    background: transparent;
-}
-
-.cm-checklist-checkbox:hover {
-    border-color: #27ae60;
-    transform: scale(1.1);
-}
-
-.cm-checklist-checkbox.checked {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    border-color: #27ae60;
-}
-
-.cm-checklist-checkbox.checked::after {
-    content: '✓';
-    position: absolute;
-    top: -2px;
-    left: 2px;
-    color: white;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.cm-checklist-text {
-    color: #e6e6e6;
+    gap: 12px;
     font-size: 12px;
     line-height: 1.4;
+    transition: all 0.2s ease;
+    word-break: break-word;
+    position: relative;
+}
+
+.cm-log-entry:hover {
+    background: rgba(56, 139, 253, 0.05);
+    border-left: 3px solid #388bfd;
+    padding-left: 13px;
+}
+
+.cm-log-entry:last-child {
+    border-bottom: none;
+}
+
+/* Tipos de log */
+.cm-log-entry.log {
+    background: rgba(240, 246, 252, 0.02);
+    color: #f0f6fc;
+}
+
+.cm-log-entry.error {
+    background: rgba(248, 81, 73, 0.1);
+    color: #f85149;
+    border-left: 3px solid #f85149;
+    padding-left: 13px;
+}
+
+.cm-log-entry.warn {
+    background: rgba(187, 128, 9, 0.1);
+    color: #d29922;
+    border-left: 3px solid #bb8009;
+    padding-left: 13px;
+}
+
+.cm-log-entry.info {
+    background: rgba(56, 139, 253, 0.1);
+    color: #79c0ff;
+    border-left: 3px solid #388bfd;
+    padding-left: 13px;
+}
+
+.cm-log-entry.debug {
+    background: rgba(6, 182, 212, 0.1);
+    color: #06b6d4;
+    border-left: 3px solid #06b6d4;
+    padding-left: 13px;
+}
+
+.cm-log-entry.trace {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    border-left: 3px solid #8b5cf6;
+    padding-left: 13px;
+}
+
+.cm-log-entry.assert {
+    background: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
+    border-left: 3px solid #ec4899;
+    padding-left: 13px;
+}
+
+.cm-log-entry.table {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-left: 3px solid #10b981;
+    padding-left: 13px;
+}
+
+.cm-log-entry.group {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-left: 3px solid #f59e0b;
+    padding-left: 13px;
+}
+
+.cm-log-entry.time {
+    background: rgba(132, 204, 22, 0.1);
+    color: #84cc16;
+    border-left: 3px solid #84cc16;
+    padding-left: 13px;
+}
+
+.cm-log-entry.php {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border-left: 3px solid #6366f1;
+    padding-left: 13px;
+}
+
+.cm-log-entry.php_error {
+    background: rgba(220, 38, 127, 0.1);
+    color: #dc2626;
+    border-left: 3px solid #dc2626;
+    padding-left: 13px;
+}
+
+.cm-log-entry.php_warning {
+    background: rgba(245, 101, 101, 0.1);
+    color: #f59e0b;
+    border-left: 3px solid #f59e0b;
+    padding-left: 13px;
+}
+
+.cm-log-entry.php_notice {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-left: 3px solid #3b82f6;
+    padding-left: 13px;
+}
+
+.cm-log-entry.network {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border-left: 3px solid #22c55e;
+    padding-left: 13px;
+}
+
+.cm-log-entry.security {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-left: 3px solid #ef4444;
+    padding-left: 13px;
+}
+
+.cm-log-entry.performance {
+    background: rgba(168, 85, 247, 0.1);
+    color: #a855f7;
+    border-left: 3px solid #a855f7;
+    padding-left: 13px;
+}
+
+/* ========================================
+   LOG ENTRY COMPONENTS
+======================================== */
+
+.cm-log-time {
+    color: #7d8590;
+    font-size: 10px;
+    min-width: 50px;
+    flex-shrink: 0;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+.cm-log-type {
+    min-width: 45px;
+    flex-shrink: 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+/* Tipos de log type específicos */
+.cm-log-type.log {
+    color: #7c3aed;
+}
+
+.cm-log-type.error {
+    color: #f85149;
+}
+
+.cm-log-type.warn {
+    color: #d29922;
+}
+
+.cm-log-type.info {
+    color: #388bfd;
+}
+
+.cm-log-type.debug {
+    color: #06b6d4;
+}
+
+.cm-log-type.trace {
+    color: #8b5cf6;
+}
+
+.cm-log-type.assert {
+    color: #ec4899;
+}
+
+.cm-log-type.table {
+    color: #10b981;
+}
+
+.cm-log-type.group {
+    color: #f59e0b;
+}
+
+.cm-log-type.time {
+    color: #84cc16;
+}
+
+.cm-log-type.php {
+    color: #6366f1;
+}
+
+.cm-log-type.php_error {
+    color: #dc2626;
+}
+
+.cm-log-type.php_warning {
+    color: #f59e0b;
+}
+
+.cm-log-type.php_notice {
+    color: #3b82f6;
+}
+
+.cm-log-type.network {
+    color: #22c55e;
+}
+
+.cm-log-type.security {
+    color: #ef4444;
+}
+
+.cm-log-type.performance {
+    color: #a855f7;
+}
+
+.cm-log-message {
     flex: 1;
     word-break: break-word;
-    transition: all 0.3s ease;
-}
-
-.cm-checklist-item.completed .cm-checklist-text {
-    text-decoration: line-through;
-    opacity: 0.6;
-    color: #7f8c8d;
-}
-
-/* ========================================
-   FOOTER DE NOTAS
-======================================== */
-
-.cm-note-footer {
-    padding: 8px 16px;
-    border-top: 1px solid #333;
-    background: rgba(0, 0, 0, 0.2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.cm-note-meta {
-    font-size: 10px;
-    color: #7f8c8d;
-    display: flex;
-    gap: 12px;
-}
-
-.cm-note-marker-info {
-    font-size: 10px;
-    color: #f39c12;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* ========================================
-   MARCADORES EN LA PÁGINA
-======================================== */
-
-.cm-page-marker {
-    position: absolute;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 99995;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    animation: markerPulse 2s infinite;
-    user-select: none;
-}
-
-@keyframes markerPulse {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-    }
-    50% {
-        transform: scale(1.1);
-        box-shadow: 0 6px 25px rgba(243, 156, 18, 0.6);
-    }
-}
-
-.cm-page-marker:hover {
-    transform: scale(1.2);
-    box-shadow: 0 8px 30px rgba(243, 156, 18, 0.8);
-    animation: none;
-}
-
-.cm-page-marker::before {
-    content: '';
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
-    border: 2px solid rgba(243, 156, 18, 0.3);
-    border-radius: 50%;
-    animation: markerRipple 3s infinite;
-}
-
-@keyframes markerRipple {
-    0% {
-        opacity: 1;
-        transform: scale(0.8);
-    }
-    100% {
-        opacity: 0;
-        transform: scale(1.5);
-    }
-}
-
-/* Tooltip del marcador */
-.cm-marker-tooltip {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transition: all 0.3s ease;
-    z-index: 99996;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.cm-marker-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.9);
-}
-
-.cm-page-marker:hover .cm-marker-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-5px);
-}
-
-/* ========================================
-   FORMULARIO DE NUEVA NOTA
-======================================== */
-
-.cm-note-form {
-    background: #2c2c2c;
-    margin: 12px;
-    border-radius: 8px;
-    border: 2px solid #27ae60;
-    padding: 16px;
-    animation: noteFormSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-}
-
-@keyframes noteFormSlide {
-    from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-        max-height: 0;
-        padding: 0 16px;
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        max-height: 500px;
-        padding: 16px;
-    }
-}
-
-.cm-form-group {
-    margin-bottom: 12px;
-}
-
-.cm-form-label {
-    display: block;
-    color: #ecf0f1;
-    font-size: 11px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.cm-form-input,
-.cm-form-textarea {
-    width: 100%;
-    background: #1a1a1a;
-    border: 1px solid #444;
-    border-radius: 6px;
-    color: #e6e6e6;
+    white-space: pre-wrap;
     font-size: 12px;
-    transition: all 0.3s ease;
-    font-family: inherit;
-    box-sizing: border-box;
+    line-height: 1.5;
 }
 
-.cm-form-input {
-    padding: 8px 12px;
-    height: 36px;
-}
-
-.cm-form-textarea {
-    padding: 10px 12px;
-    min-height: 60px;
-    resize: vertical;
-    line-height: 1.4;
-}
-
-.cm-form-input:focus,
-.cm-form-textarea:focus {
-    outline: none;
-    border-color: #27ae60;
-    box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
-}
-
-.cm-form-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #444;
-}
-
-.cm-form-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.cm-form-btn.primary {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    color: white;
-}
-
-.cm-form-btn.primary:hover {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-}
-
-.cm-form-btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: #bdc3c7;
-}
-
-.cm-form-btn.secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+.cm-log-source {
+    color: #7d8590;
+    font-size: 10px;
+    opacity: 0.7;
+    font-style: italic;
+    min-width: 80px;
+    text-align: right;
+    flex-shrink: 0;
 }
 
 /* ========================================
-   ESTADO EMPTY PARA NOTAS
+   LOG MESSAGE FORMATTING
 ======================================== */
 
-.cm-notes-empty {
+/* JSON highlighting básico */
+.cm-log-message .json-key {
+    color: #79c0ff;
+}
+
+.cm-log-message .json-string {
+    color: #a5d6ff;
+}
+
+.cm-log-message .json-number {
+    color: #79c0ff;
+}
+
+.cm-log-message .json-boolean {
+    color: #f85149;
+}
+
+.cm-log-message .json-null {
+    color: #7d8590;
+}
+
+/* Stack traces */
+.cm-log-message .stack-trace {
+    background: rgba(248, 81, 73, 0.1);
+    border-left: 2px solid #f85149;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #f85149;
+    line-height: 1.3;
+}
+
+/* URLs en mensajes */
+.cm-log-message a {
+    color: #58a6ff;
+    text-decoration: underline;
+}
+
+.cm-log-message a:hover {
+    color: #79c0ff;
+}
+
+/* ========================================
+   ESTADO EMPTY
+======================================== */
+
+.cm-terminal-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 60%;
-    color: #7f8c8d;
+    color: #7d8590;
     text-align: center;
     padding: 40px 20px;
 }
 
-.cm-notes-empty-icon {
+.cm-terminal-empty-icon {
     font-size: 64px;
     margin-bottom: 20px;
     opacity: 0.7;
 }
 
-.cm-notes-empty-title {
+.cm-terminal-empty-title {
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 8px;
-    color: #95a5a6;
+    color: #f0f6fc;
 }
 
-.cm-notes-empty-text {
+.cm-terminal-empty-text {
     font-size: 12px;
     line-height: 1.5;
     opacity: 0.8;
-}
-
-/* Footer de notas */
-.cm-notes-count {
-    color: #bdc3c7;
+    max-width: 300px;
 }
 
 /* ========================================
-   RESPONSIVE PARA NOTAS
+   ANIMACIONES DE LOGS
+======================================== */
+
+.cm-log-entry.new {
+    animation: logSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes logSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+        background: rgba(56, 139, 253, 0.2);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+        background: transparent;
+    }
+}
+
+/* Highlight para logs nuevos */
+.cm-log-entry.highlight {
+    animation: logHighlight 2s ease-out;
+}
+
+@keyframes logHighlight {
+    0% {
+        background: rgba(56, 139, 253, 0.3);
+        transform: scale(1.01);
+    }
+    100% {
+        background: transparent;
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   FILTROS SIMPLES - SOLO BOTONES ESPECÍFICOS
+======================================== */
+
+.cm-terminal-filters {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.cm-filter-btn {
+    padding: 6px 12px;
+    border: 1px solid #30363d;
+    background: transparent;
+    color: #7d8590;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 70px;
+    justify-content: center;
+}
+
+.cm-filter-btn:hover {
+    border-color: #58a6ff;
+    color: #58a6ff;
+    transform: translateY(-1px);
+}
+
+.cm-filter-btn.active {
+    background: #388bfd;
+    color: white;
+    border-color: #388bfd;
+    box-shadow: 0 2px 8px rgba(56, 139, 253, 0.3);
+}
+
+.cm-filter-btn.error.active {
+    background: #f85149;
+    border-color: #f85149;
+}
+
+.cm-filter-btn.warn.active {
+    background: #d29922;
+    border-color: #d29922;
+}
+
+.cm-filter-btn.php.active {
+    background: #6366f1;
+    border-color: #6366f1;
+}
+
+.cm-filter-btn.network.active {
+    background: #22c55e;
+    border-color: #22c55e;
+}
+
+.cm-filter-btn.security.active {
+    background: #ef4444;
+    border-color: #ef4444;
+}
+
+/* Contador simple en filtros */
+.cm-filter-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 9px;
+    font-weight: bold;
+    margin-left: 4px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.cm-filter-btn.active .cm-filter-count {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Botón mostrar todo */
+.cm-show-all {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #30363d;
+    color: #7d8590;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+.cm-show-all:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #f0f6fc;
+    border-color: #58a6ff;
+}
+
+.cm-show-all.active {
+    background: #58a6ff;
+    color: white;
+    border-color: #58a6ff;
+}
+
+/* ========================================
+   CONTADOR DE LOGS
+======================================== */
+
+.cm-logs-count {
+    color: #7d8590;
+    font-size: 11px;
+}
+
+.cm-logs-count .count-error {
+    color: #f85149;
+    font-weight: 600;
+}
+
+.cm-logs-count .count-warn {
+    color: #d29922;
+    font-weight: 600;
+}
+
+.cm-logs-count .count-info {
+    color: #388bfd;
+    font-weight: 600;
+}
+
+/* ========================================
+   SCROLL TO BOTTOM
+======================================== */
+
+.cm-scroll-to-bottom {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    background: #388bfd;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(56, 139, 253, 0.3);
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.cm-scroll-to-bottom:hover {
+    background: #58a6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(56, 139, 253, 0.4);
+}
+
+.cm-scroll-to-bottom.show {
+    display: flex;
+}
+
+/* ========================================
+   FILTROS RÁPIDOS EN FOOTER
+======================================== */
+
+.cm-quick-filter {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #30363d;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.cm-quick-filter:hover {
+    border-color: #58a6ff;
+    background: rgba(88, 166, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.cm-quick-filter.active {
+    border-color: #58a6ff;
+    background: #58a6ff;
+    color: white;
+}
+
+/* ========================================
+   RESPONSIVE MEJORADO PARA FILTROS
 ======================================== */
 
 @media (max-width: 1024px) {
-    .cm-notes {
-        right: 10px;
-        width: 360px;
+    .cm-terminal {
+        left: 10px;
+        width: 450px;
     }
 }
 
 @media (max-width: 768px) {
-    .cm-notes {
+    .cm-terminal {
         width: calc(100vw - 20px);
-        right: 10px;
         left: 10px;
+        right: 10px;
         transform: translateY(-100%);
+        top: 10px !important;
+        height: calc(100vh - 20px) !important;
     }
     
-    .cm-notes.show {
+    .cm-terminal.show {
         transform: translateY(0);
     }
     
-    .cm-note-item {
-        margin: 8px;
+    .cm-log-entry {
+        padding: 6px 12px;
+        font-size: 11px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
     }
     
-    .cm-page-marker {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
+    .cm-log-time,
+    .cm-log-type,
+    .cm-log-source {
+        min-width: auto;
+        font-size: 9px;
+    }
+    
+    .cm-terminal-filters {
+        padding: 6px 12px;
+        gap: 4px;
+    }
+    
+    .cm-filter-btn {
+        font-size: 9px;
+        padding: 3px 6px;
     }
 }
 
 @media (max-width: 480px) {
-    .cm-btn-add-note {
+    .cm-log-entry {
         padding: 4px 8px;
         font-size: 10px;
     }
     
-    .cm-btn-add-note .cm-btn-text {
-        display: none;
+    .cm-log-message {
+        font-size: 10px;
     }
     
-    .cm-notes-header-actions {
-        gap: 4px;
+    .cm-btn-clear {
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+    
+    .cm-btn-clear .cm-btn-text {
+        display: none;
     }
 }
 
 /* ========================================
-   NOTIFICACIONES (para el sistema de notas)
+   MODO OSCURO ESPECÍFICO
 ======================================== */
 
-.cm-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    z-index: 99999;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
+@media (prefers-color-scheme: dark) {
+    .cm-logs-container {
+        background: #000000;
+    }
+    
+    .cm-log-entry {
+        border-color: rgba(33, 38, 45, 0.5);
+    }
+    
+    .cm-terminal-filters {
+        background: #0d1117;
+        border-color: #21262d;
+    }
+}
+
+/* ========================================
+   ALTO CONTRASTE
+======================================== */
+
+@media (prefers-contrast: high) {
+    .cm-log-entry.error {
+        border-left-width: 4px;
+        background: rgba(248, 81, 73, 0.2);
+    }
+    
+    .cm-log-entry.warn {
+        border-left-width: 4px;
+        background: rgba(187, 128, 9, 0.2);
+    }
+    
+    .cm-log-entry.info {
+        border-left-width: 4px;
+        background: rgba(56, 139, 253, 0.2);
+    }
+}
+
+/* ========================================
+   REDUCIR MOVIMIENTO
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .cm-log-entry,
+    .cm-filter-btn,
+    .cm-scroll-to-bottom {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+======================================== */
+
+@media print {
+    .cm-terminal {
+        display: none;
+    }
 }

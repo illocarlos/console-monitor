@@ -1,603 +1,607 @@
 /**
- * Console Monitor Pro - JavaScript SOLO PARA NOTAS Y MARCADORES
- * Archivo: assets/js/console-monitor-notes.js
- * Se incluye DESPUÉS del archivo principal console-monitor-simple.js
+ * Console Monitor Pro - JavaScript TERMINAL SIMPLE
+ * assets/js/cm-terminal.js
+ * Sistema simplificado de terminal con filtros básicos
+ * Requiere: cm-core.js, jQuery
  */
 
 (function ($) {
     'use strict';
 
-    // Verificar que ConsoleMonitor existe
+    // Verificar dependencia
     if (!window.ConsoleMonitor) {
-        console.error('Console Monitor Notes: ConsoleMonitor no está disponible');
+        console.error('CM Terminal: ConsoleMonitor core no disponible');
         return;
     }
 
-    // EXTENDER EL OBJETO ConsoleMonitor EXISTENTE
+    // Extender estado base con datos específicos del terminal
     $.extend(window.ConsoleMonitor.state, {
-        // Estados de notas
-        notesData: [],
-        isAddingNote: false,
-        selectedNoteForMarker: null,
-        pageMarkers: new Map(), // noteId -> markerElement
-        markerMode: false
+        // Estados específicos del terminal
+        terminalLogs: [],
+        currentFilter: 'all', // 'all', 'error', 'warn', 'php', 'network', 'security'
+        autoScroll: true,
+        maxLogs: 100,
+        logUpdateInterval: null
     });
 
     // Extender elementos DOM
     $.extend(window.ConsoleMonitor.elements, {
-        $notes: null,
-        $notesContainer: null
+        $terminal: null,
+        $logsContainer: null,
+        $scrollToBottom: null
     });
 
     // ========================================
-    // EXTENDER FUNCIONES PRINCIPALES
+    // INICIALIZACIÓN DEL MÓDULO TERMINAL
     // ========================================
 
-    // Agregar al init existente
+    // Extender la función init del core
     const originalInit = window.ConsoleMonitor.init;
     window.ConsoleMonitor.init = function () {
         originalInit.call(this);
-        this.initNotesSystem();
+        this.initTerminalModule();
     };
 
-    // Agregar al cacheElements existente
+    // Extender cacheElements del core
     const originalCacheElements = window.ConsoleMonitor.cacheElements;
     window.ConsoleMonitor.cacheElements = function () {
         originalCacheElements.call(this);
-        this.elements.$notes = $('#cm-notes');
-        this.elements.$notesContainer = $('#cm-notes-container');
+        this.elements.$terminal = $('#cm-terminal');
+        this.elements.$logsContainer = $('#cm-logs');
+        this.elements.$scrollToBottom = $('.cm-scroll-to-bottom');
     };
 
-    // Agregar a bindEvents existente
-    const originalBindEvents = window.ConsoleMonitor.bindEvents;
-    window.ConsoleMonitor.bindEvents = function () {
-        originalBindEvents.call(this);
-        this.bindNotesEvents();
-    };
+    // Inicializar módulo de terminal
+    window.ConsoleMonitor.initTerminalModule = function () {
+        this.bindTerminalEvents();
+        this.setupLogUpdates();
 
-    // Modificar closeActivePanel para incluir notas
-    const originalCloseActivePanel = window.ConsoleMonitor.closeActivePanel;
-    window.ConsoleMonitor.closeActivePanel = function () {
-        const self = this;
-
-        if (!this.state.activePanel) return;
-
-        this.elements.$overlay.removeClass('show');
-        this.elements.$terminal.removeClass('show');
-        this.elements.$iphone.removeClass('show');
-        this.elements.$notes.removeClass('show'); // NUEVO
-
-        setTimeout(function () {
-            self.elements.$container.removeClass('terminal-active iphone-active notes-active'); // AGREGADO notes-active
-            self.elements.$btn.find('.cm-btn-icon').text('🔧');
-            self.elements.$btn.find('.cm-btn-text').text('Debug');
-            self.state.activePanel = null;
-            self.state.isExpanded = false;
-        }, 500);
+        console.log('🐛 Terminal module initialized');
     };
 
     // ========================================
-    // FUNCIONES PRINCIPALES DE NOTAS
+    // EVENTOS ESPECÍFICOS DEL TERMINAL
     // ========================================
 
-    // Inicializar sistema de notas
-    window.ConsoleMonitor.initNotesSystem = function () {
-        this.loadNotesFromDB();
-        this.setupPageMarkers();
-        console.log('📝 Notes system initialized');
-    };
-
-    // Eventos específicos de notas
-    window.ConsoleMonitor.bindNotesEvents = function () {
+    window.ConsoleMonitor.bindTerminalEvents = function () {
         const self = this;
 
-        // Click en botón de notas
-        $(document).on('click', '.cm-option-btn.notes', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.selectNotes();
-        });
-
-        // Botón agregar nota
-        $(document).on('click', '.cm-btn-add-note', function (e) {
-            e.preventDefault();
-            self.showAddNoteForm();
-        });
-
-        // Formulario de nueva nota
-        $(document).on('click', '.cm-form-btn.primary', function (e) {
-            e.preventDefault();
-            self.submitNoteForm();
-        });
-
-        $(document).on('click', '.cm-form-btn.secondary', function (e) {
-            e.preventDefault();
-            self.cancelNoteForm();
-        });
-
-        // Acciones de notas
-        $(document).on('click', '.cm-note-action-btn.marker', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const noteId = $(this).closest('.cm-note-item').data('note-id');
-            self.toggleNoteMarker(noteId);
-        });
-
-        $(document).on('click', '.cm-note-action-btn.delete', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const noteId = $(this).closest('.cm-note-item').data('note-id');
-            self.deleteNote(noteId);
-        });
-
-        // Checklist interactions
-        $(document).on('click', '.cm-checklist-checkbox', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const noteId = $(this).closest('.cm-note-item').data('note-id');
-            const itemIndex = $(this).closest('.cm-checklist-item').index();
-            self.toggleChecklistItem(noteId, itemIndex);
-        });
-
-        // Click en marcador de página
-        $(document).on('click', '.cm-page-marker', function (e) {
-            e.preventDefault();
-            const noteId = $(this).data('note-id');
-            self.openNoteFromMarker(noteId);
-        });
-
-        // Atajos de teclado para notas
-        $(document).on('keydown', function (e) {
-            // Ctrl+Shift+N para abrir notas
-            if (e.ctrlKey && e.shiftKey && e.keyCode === 78) {
-                e.preventDefault();
-                self.selectNotes();
+        // Escuchar apertura del panel de terminal
+        $(document).on('cm:panel:opened', function (e, panelType) {
+            if (panelType === 'terminal') {
+                setTimeout(() => {
+                    self.loadTerminalLogs();
+                    self.startLogPolling();
+                }, 100);
             }
         });
-    };
 
-    // Seleccionar panel de notas
-    window.ConsoleMonitor.selectNotes = function () {
-        if (this.state.isTransforming) return;
+        // Escuchar cierre del panel de terminal
+        $(document).on('cm:panel:closed', function (e, panelType) {
+            if (panelType === 'terminal') {
+                self.stopLogPolling();
+            }
+        });
 
-        this.state.isTransforming = true;
-        this.state.activePanel = 'notes';
+        // Filtros simples
+        $(document).on('click', '.cm-filter-btn', function (e) {
+            e.preventDefault();
+            const filterType = $(this).data('filter');
+            if (filterType) {
+                self.setFilter(filterType);
+            }
+        });
 
-        this.elements.$container.removeClass('expanded').addClass('transforming-notes');
+        // Botón mostrar todo
+        $(document).on('click', '.cm-show-all', function (e) {
+            e.preventDefault();
+            self.setFilter('all');
+        });
 
-        this.elements.$btn.find('.cm-btn-icon').text('📝');
-        this.elements.$btn.find('.cm-btn-text').text('Notas');
+        // Botón limpiar
+        $(document).on('click', '.cm-btn-clear', function (e) {
+            e.preventDefault();
+            if ($(this).closest('#cm-terminal').length) {
+                self.clearTerminalLogs();
+            }
+        });
 
-        const self = this;
-        setTimeout(function () {
-            self.elements.$container.removeClass('transforming-notes').addClass('notes-active');
-            self.elements.$overlay.addClass('show');
-            self.elements.$notes.addClass('show');
-            self.loadNotesFromDB();
-            self.state.isTransforming = false;
-            self.state.isExpanded = false;
-        }, 800);
+        // Scroll automático
+        if (this.elements.$logsContainer.length) {
+            this.elements.$logsContainer.on('scroll', function () {
+                self.handleLogsScroll();
+            });
+        }
+
+        // Botón scroll to bottom
+        $(document).on('click', '.cm-scroll-to-bottom', function (e) {
+            e.preventDefault();
+            self.scrollLogsToBottom();
+        });
     };
 
     // ========================================
-    // GESTIÓN DE NOTAS
+    // GESTIÓN DE LOGS
     // ========================================
 
-    // Cargar notas desde la base de datos
-    window.ConsoleMonitor.loadNotesFromDB = function () {
+    // Cargar logs del terminal
+    window.ConsoleMonitor.loadTerminalLogs = function () {
         const self = this;
 
         $.post(cmData.ajax_url, {
-            action: 'cm_get_notes',
+            action: 'cm_get_logs',
             nonce: cmData.nonce
         }, function (response) {
             if (response.success) {
-                self.state.notesData = response.data.notes || [];
-                self.renderNotes();
-                self.updatePageMarkers();
+                // Combinar logs de PHP y JavaScript
+                const phpLogs = response.data.php_logs || [];
+                const jsLogs = window.CMPro ? window.CMPro.logs || [] : [];
+
+                // Combinar y ordenar por tiempo
+                self.state.terminalLogs = [...phpLogs, ...jsLogs];
+                self.renderTerminalLogs();
+
+                console.log('🐛 Loaded', self.state.terminalLogs.length, 'terminal logs');
+            } else {
+                console.error('Error loading terminal logs:', response);
+                self.showNotification('Error al cargar logs', 'error');
             }
+        }).fail(function (xhr, status, error) {
+            console.error('AJAX error loading logs:', error);
+            self.showNotification('Error de conexión', 'error');
         });
     };
 
-    // Renderizar notas
-    window.ConsoleMonitor.renderNotes = function () {
-        const $container = this.elements.$notesContainer;
+    // Renderizar logs del terminal
+    window.ConsoleMonitor.renderTerminalLogs = function () {
+        const $container = this.elements.$logsContainer;
 
-        if (this.state.notesData.length === 0) {
+        if (!$container.length) {
+            console.warn('Logs container not found');
+            return;
+        }
+
+        if (this.state.terminalLogs.length === 0) {
             $container.html(`
-                <div class="cm-notes-empty">
-                    <div class="cm-notes-empty-icon">📝</div>
-                    <div class="cm-notes-empty-title">Sin notas aún</div>
-                    <div class="cm-notes-empty-text">
-                        Crea tu primera nota para empezar a organizar<br>
-                        tu debugging y tareas de desarrollo
+                <div class="cm-terminal-empty">
+                    <div class="cm-terminal-empty-icon">🐛</div>
+                    <div class="cm-terminal-empty-title">Terminal limpio</div>
+                    <div class="cm-terminal-empty-text">
+                        Los logs de JavaScript y PHP aparecerán aquí.<br>
+                        Ejecuta código o navega por la web para ver actividad.
                     </div>
                 </div>
             `);
+            $('.cm-logs-count').text('0 logs');
             return;
         }
 
-        const notesHtml = this.state.notesData.map(note => this.renderNoteItem(note)).join('');
-        $container.html(notesHtml);
+        // Filtrar logs según filtro activo
+        let filteredLogs = this.state.terminalLogs;
 
-        // Actualizar contador
-        $('.cm-notes-count').text(`${this.state.notesData.length} notas`);
+        if (this.state.currentFilter !== 'all') {
+            filteredLogs = this.state.terminalLogs.filter(log => {
+                switch (this.state.currentFilter) {
+                    case 'error':
+                        return log.type === 'error' || log.type === 'php_error';
+                    case 'warn':
+                        return log.type === 'warn' || log.type === 'php_warning';
+                    case 'php':
+                        return log.type.startsWith('php');
+                    case 'network':
+                        return log.type === 'network' || log.message.includes('fetch') || log.message.includes('xhr');
+                    case 'security':
+                        return log.type === 'security' || log.message.includes('security') || log.message.includes('unauthorized');
+                    default:
+                        return log.type === this.state.currentFilter;
+                }
+            });
+        }
+
+        const logsHtml = `
+            <div class="cm-terminal-filters">
+                ${this.renderSimpleFilters()}
+                <button class="cm-show-all ${this.state.currentFilter === 'all' ? 'active' : ''}" title="Mostrar todos los logs">
+                    📋 Mostrar Todo
+                </button>
+            </div>
+            ${filteredLogs.map(log => this.renderLogEntry(log)).join('')}
+        `;
+        $container.html(logsHtml);
+
+        // Actualizar contador con detalles
+        this.updateLogCounts();
+
+        // Auto-scroll si está habilitado
+        if (this.state.autoScroll) {
+            this.scrollLogsToBottom();
+        }
     };
 
-    // Renderizar una nota individual
-    window.ConsoleMonitor.renderNoteItem = function (note) {
-        const hasMarker = note.marker_x && note.marker_y;
-        const completedTasks = note.checklist.filter(item => item.completed).length;
-        const totalTasks = note.checklist.length;
+    // Renderizar entrada de log individual
+    window.ConsoleMonitor.renderLogEntry = function (log) {
+        const typeClass = log.type || 'log';
+        const time = log.time || new Date().toLocaleTimeString();
+        const message = this.formatLogMessage(log.message || '');
+        const source = log.source || '';
 
         return `
-            <div class="cm-note-item ${hasMarker ? 'has-marker' : ''}" data-note-id="${note.id}">
-                <div class="cm-note-header">
-                    <div class="cm-note-title">${this.escapeHtml(note.title)}</div>
-                    <div class="cm-note-actions">
-                        <button class="cm-note-action-btn marker ${hasMarker ? 'active' : ''}" 
-                                title="Crear/Quitar marcador">📍</button>
-                        <button class="cm-note-action-btn delete" title="Eliminar nota">🗑️</button>
-                    </div>
-                </div>
-                <div class="cm-note-content">
-                    ${note.description ? `<div class="cm-note-description">${this.escapeHtml(note.description)}</div>` : ''}
-                    ${note.checklist.length > 0 ? this.renderChecklist(note.checklist, note.id) : ''}
-                </div>
-                <div class="cm-note-footer">
-                    <div class="cm-note-meta">
-                        <span>📅 ${note.created_at}</span>
-                        ${totalTasks > 0 ? `<span>✅ ${completedTasks}/${totalTasks} tareas</span>` : ''}
-                    </div>
-                    ${hasMarker ? '<div class="cm-note-marker-info">📍 Con marcador</div>' : ''}
-                </div>
+            <div class="cm-log-entry ${typeClass}" data-type="${typeClass}">
+                <span class="cm-log-time">${time}</span>
+                <span class="cm-log-type ${typeClass}">${typeClass.toUpperCase()}</span>
+                <div class="cm-log-message">${message}</div>
+                ${source ? `<span class="cm-log-source">${this.escapeHtml(source)}</span>` : ''}
             </div>
         `;
     };
 
-    // Renderizar checklist
-    window.ConsoleMonitor.renderChecklist = function (checklist, noteId) {
-        const checklistHtml = checklist.map((item, index) => `
-            <div class="cm-checklist-item ${item.completed ? 'completed' : ''}" data-item-index="${index}">
-                <div class="cm-checklist-checkbox ${item.completed ? 'checked' : ''}"></div>
-                <div class="cm-checklist-text">${this.escapeHtml(item.text)}</div>
-            </div>
-        `).join('');
+    // Formatear mensaje de log
+    window.ConsoleMonitor.formatLogMessage = function (message) {
+        if (!message) return '';
 
-        return `<ul class="cm-note-checklist">${checklistHtml}</ul>`;
-    };
+        // Escape HTML básico
+        message = this.escapeHtml(message.toString());
 
-    // Mostrar formulario de nueva nota
-    window.ConsoleMonitor.showAddNoteForm = function () {
-        if (this.state.isAddingNote) return;
-
-        this.state.isAddingNote = true;
-
-        const formHtml = `
-            <div class="cm-note-form" id="cm-note-form">
-                <div class="cm-form-group">
-                    <label class="cm-form-label">Título de la nota</label>
-                    <input type="text" class="cm-form-input" id="cm-note-title" 
-                           placeholder="Ej: Revisar header responsivo" maxlength="100">
-                </div>
-                <div class="cm-form-group">
-                    <label class="cm-form-label">Descripción (opcional)</label>
-                    <textarea class="cm-form-textarea" id="cm-note-description" 
-                              placeholder="Contexto adicional sobre esta nota..." maxlength="500"></textarea>
-                </div>
-                <div class="cm-form-group">
-                    <label class="cm-form-label">Checklist (una tarea por línea)</label>
-                    <textarea class="cm-form-textarea" id="cm-note-checklist" 
-                              placeholder="Verificar en mobile&#10;Probar en Safari&#10;Validar CSS Grid" 
-                              rows="4" maxlength="1000"></textarea>
-                </div>
-                <div class="cm-form-actions">
-                    <button class="cm-form-btn secondary">Cancelar</button>
-                    <button class="cm-form-btn primary">Crear Nota</button>
-                </div>
-            </div>
-        `;
-
-        this.elements.$notesContainer.prepend(formHtml);
-        $('#cm-note-title').focus();
-    };
-
-    // Enviar formulario de nota
-    window.ConsoleMonitor.submitNoteForm = function () {
-        const title = $('#cm-note-title').val().trim();
-        const description = $('#cm-note-description').val().trim();
-        const checklistText = $('#cm-note-checklist').val().trim();
-
-        if (!title) {
-            $('#cm-note-title').focus();
-            this.showNotification('El título es requerido', 'error');
-            return;
+        // Detectar y formatear JSON
+        try {
+            if (message.trim().startsWith('{') || message.trim().startsWith('[')) {
+                const parsed = JSON.parse(message);
+                message = this.syntaxHighlightJSON(JSON.stringify(parsed, null, 2));
+            }
+        } catch (e) {
+            // No es JSON válido, continuar con formato normal
         }
 
-        // Procesar checklist
-        const checklist = checklistText ?
-            checklistText.split('\n')
-                .map(line => line.trim())
-                .filter(line => line.length > 0)
-                .map(text => ({ text, completed: false })) : [];
+        // Detectar URLs
+        message = message.replace(
+            /(https?:\/\/[^\s]+)/g,
+            '<a href="$1" target="_blank" rel="noopener">$1</a>'
+        );
 
-        const noteData = {
-            title,
-            description,
-            checklist,
-            url: window.location.href
-        };
-
-        this.saveNoteToDB(noteData);
-    };
-
-    // Cancelar formulario
-    window.ConsoleMonitor.cancelNoteForm = function () {
-        $('#cm-note-form').remove();
-        this.state.isAddingNote = false;
-    };
-
-    // Guardar nota en BD
-    window.ConsoleMonitor.saveNoteToDB = function (noteData) {
-        const self = this;
-
-        $.post(cmData.ajax_url, {
-            action: 'cm_save_note',
-            nonce: cmData.nonce,
-            note_data: JSON.stringify(noteData)
-        }, function (response) {
-            if (response.success) {
-                self.cancelNoteForm();
-                self.loadNotesFromDB();
-                self.showNotification('Nota creada exitosamente', 'success');
-            } else {
-                self.showNotification('Error al crear la nota', 'error');
+        // Formatear stack traces
+        if (message.includes('    at ') || message.includes('\n')) {
+            const lines = message.split('\n');
+            if (lines.length > 1) {
+                message = lines.map((line, index) => {
+                    if (line.trim().startsWith('at ')) {
+                        return `<div class="stack-trace">${line}</div>`;
+                    }
+                    return line;
+                }).join('\n');
             }
-        });
-    };
-
-    // Toggle checklist item
-    window.ConsoleMonitor.toggleChecklistItem = function (noteId, itemIndex) {
-        const self = this;
-
-        $.post(cmData.ajax_url, {
-            action: 'cm_toggle_checklist_item',
-            nonce: cmData.nonce,
-            note_id: noteId,
-            item_index: itemIndex
-        }, function (response) {
-            if (response.success) {
-                self.loadNotesFromDB();
-            }
-        });
-    };
-
-    // Eliminar nota
-    window.ConsoleMonitor.deleteNote = function (noteId) {
-        if (!confirm('¿Estás seguro de eliminar esta nota? Esta acción no se puede deshacer.')) {
-            return;
         }
 
-        const self = this;
-
-        $.post(cmData.ajax_url, {
-            action: 'cm_delete_note',
-            nonce: cmData.nonce,
-            note_id: noteId
-        }, function (response) {
-            if (response.success) {
-                self.removePageMarker(noteId);
-                self.loadNotesFromDB();
-                self.showNotification('Nota eliminada', 'success');
-            }
-        });
+        return message;
     };
 
-    // ========================================
-    // SISTEMA DE MARCADORES
-    // ========================================
-
-    // Setup inicial de marcadores
-    window.ConsoleMonitor.setupPageMarkers = function () {
-        const self = this;
-
-        // Interceptar clicks para crear marcadores
-        $(document).on('click', function (e) {
-            if (self.state.markerMode && self.state.selectedNoteForMarker) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const x = e.pageX;
-                const y = e.pageY;
-
-                self.createMarkerAtPosition(self.state.selectedNoteForMarker, x, y);
-                self.exitMarkerMode();
-            }
-        });
-    };
-
-    // Toggle marcador de nota
-    window.ConsoleMonitor.toggleNoteMarker = function (noteId) {
-        const note = this.state.notesData.find(n => n.id == noteId);
-        if (!note) return;
-
-        if (note.marker_x && note.marker_y) {
-            // Quitar marcador existente
-            this.removeMarkerFromDB(noteId);
-        } else {
-            // Crear nuevo marcador
-            this.enterMarkerMode(noteId);
-        }
-    };
-
-    // Entrar en modo marcador
-    window.ConsoleMonitor.enterMarkerMode = function (noteId) {
-        this.state.markerMode = true;
-        this.state.selectedNoteForMarker = noteId;
-
-        // Cambiar cursor y mostrar instrucciones
-        $('body').css('cursor', 'crosshair');
-        this.showNotification('Haz click en la página donde quieres colocar el marcador', 'info', 5000);
-
-        // Overlay sutil para indicar modo activo
-        $('body').append('<div id="cm-marker-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(243, 156, 18, 0.1); z-index: 99994; pointer-events: none;"></div>');
-    };
-
-    // Salir del modo marcador
-    window.ConsoleMonitor.exitMarkerMode = function () {
-        this.state.markerMode = false;
-        this.state.selectedNoteForMarker = null;
-        $('body').css('cursor', '');
-        $('#cm-marker-overlay').remove();
-    };
-
-    // Crear marcador en posición
-    window.ConsoleMonitor.createMarkerAtPosition = function (noteId, x, y) {
-        const self = this;
-
-        $.post(cmData.ajax_url, {
-            action: 'cm_save_marker',
-            nonce: cmData.nonce,
-            note_id: noteId,
-            marker_x: x,
-            marker_y: y,
-            page_url: window.location.href
-        }, function (response) {
-            if (response.success) {
-                self.loadNotesFromDB();
-                self.showNotification('Marcador creado exitosamente', 'success');
-            }
-        });
-    };
-
-    // Actualizar marcadores en la página
-    window.ConsoleMonitor.updatePageMarkers = function () {
-        // Limpiar marcadores existentes
-        $('.cm-page-marker').remove();
-        this.state.pageMarkers.clear();
-
-        // Crear marcadores para la página actual
-        const currentUrl = window.location.href;
-        this.state.notesData.forEach(note => {
-            if (note.marker_x && note.marker_y && note.page_url === currentUrl) {
-                this.createMarkerElement(note);
-            }
-        });
-    };
-
-    // Crear elemento marcador
-    window.ConsoleMonitor.createMarkerElement = function (note) {
-        const markerElement = $(`
-            <div class="cm-page-marker" data-note-id="${note.id}" style="left: ${note.marker_x}px; top: ${note.marker_y}px;">
-                📍
-                <div class="cm-marker-tooltip">${this.escapeHtml(note.title)}</div>
-            </div>
-        `);
-
-        $('body').append(markerElement);
-        this.state.pageMarkers.set(note.id, markerElement);
-    };
-
-    // Abrir nota desde marcador
-    window.ConsoleMonitor.openNoteFromMarker = function (noteId) {
-        // Si el panel de notas no está abierto, abrirlo
-        if (this.state.activePanel !== 'notes') {
-            this.selectNotes();
-
-            // Esperar a que se abra y luego hacer scroll a la nota
-            setTimeout(() => {
-                this.scrollToNote(noteId);
-            }, 1000);
-        } else {
-            this.scrollToNote(noteId);
-        }
-    };
-
-    // Scroll a nota específica
-    window.ConsoleMonitor.scrollToNote = function (noteId) {
-        const $noteElement = $(`.cm-note-item[data-note-id="${noteId}"]`);
-        if ($noteElement.length) {
-            // Highlight temporal
-            $noteElement.css({
-                'background': 'linear-gradient(90deg, rgba(39, 174, 96, 0.2) 0%, #252525 50%)',
-                'transform': 'scale(1.02)'
+    // Syntax highlighting básico para JSON
+    window.ConsoleMonitor.syntaxHighlightJSON = function (json) {
+        return json
+            .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
             });
-
-            // Scroll suave
-            this.elements.$notesContainer.animate({
-                scrollTop: $noteElement.offset().top - this.elements.$notesContainer.offset().top + this.elements.$notesContainer.scrollTop() - 20
-            }, 500);
-
-            // Quitar highlight después de 2 segundos
-            setTimeout(() => {
-                $noteElement.css({
-                    'background': '',
-                    'transform': ''
-                });
-            }, 2000);
-        }
     };
 
-    // Remover marcador de página
-    window.ConsoleMonitor.removePageMarker = function (noteId) {
-        const markerElement = this.state.pageMarkers.get(noteId);
-        if (markerElement) {
-            markerElement.remove();
-            this.state.pageMarkers.delete(noteId);
-        }
+    // Renderizar filtros simples
+    window.ConsoleMonitor.renderSimpleFilters = function () {
+        const logCounts = this.getLogCounts();
+
+        const filters = [
+            { key: 'error', label: 'Errores', icon: '🔴', count: (logCounts.error || 0) + (logCounts.php_error || 0) },
+            { key: 'warn', label: 'Warnings', icon: '⚠️', count: (logCounts.warn || 0) + (logCounts.php_warning || 0) },
+            { key: 'php', label: 'PHP', icon: '🐘', count: (logCounts.php || 0) + (logCounts.php_error || 0) + (logCounts.php_warning || 0) + (logCounts.php_notice || 0) },
+            { key: 'network', label: 'Red', icon: '🌐', count: logCounts.network || 0 },
+            { key: 'security', label: 'Seguridad', icon: '🔒', count: logCounts.security || 0 }
+        ];
+
+        return filters.map(filter => {
+            const isActive = this.state.currentFilter === filter.key;
+            const activeClass = isActive ? 'active' : '';
+
+            return `
+                <button class="cm-filter-btn ${filter.key} ${activeClass}" 
+                        data-filter="${filter.key}" 
+                        title="${filter.label}: ${filter.count} logs">
+                    ${filter.icon} <span>${filter.label}</span>
+                    ${filter.count > 0 ? `<span class="cm-filter-count">${filter.count}</span>` : ''}
+                </button>
+            `;
+        }).join('');
     };
 
-    // Remover marcador de BD
-    window.ConsoleMonitor.removeMarkerFromDB = function (noteId) {
+    // Establecer filtro específico
+    window.ConsoleMonitor.setFilter = function (filterType) {
+        this.state.currentFilter = filterType;
+        this.renderTerminalLogs();
+
+        console.log('🐛 Filter set to:', filterType);
+    };
+
+    // Obtener conteos de logs por tipo
+    window.ConsoleMonitor.getLogCounts = function () {
+        const counts = {};
+
+        // Contar logs por tipo
+        this.state.terminalLogs.forEach(log => {
+            if (!counts[log.type]) {
+                counts[log.type] = 0;
+            }
+            counts[log.type]++;
+        });
+
+        return counts;
+    };
+
+    // Actualizar contadores de logs
+    window.ConsoleMonitor.updateLogCounts = function () {
+        const counts = this.getLogCounts();
+        const total = this.state.terminalLogs.length;
+        const filtered = this.state.currentFilter === 'all' ? total :
+            this.state.terminalLogs.filter(log => {
+                switch (this.state.currentFilter) {
+                    case 'error':
+                        return log.type === 'error' || log.type === 'php_error';
+                    case 'warn':
+                        return log.type === 'warn' || log.type === 'php_warning';
+                    case 'php':
+                        return log.type.startsWith('php');
+                    case 'network':
+                        return log.type === 'network' || log.message.includes('fetch') || log.message.includes('xhr');
+                    case 'security':
+                        return log.type === 'security' || log.message.includes('security') || log.message.includes('unauthorized');
+                    default:
+                        return log.type === this.state.currentFilter;
+                }
+            }).length;
+
+        let countText;
+        if (this.state.currentFilter === 'all') {
+            countText = `${total} logs`;
+            if (counts.error > 0) countText += ` • <span class="count-error">${counts.error} errores</span>`;
+            if (counts.warn > 0) countText += ` • <span class="count-warn">${counts.warn} warnings</span>`;
+            if (counts.php_error > 0) countText += ` • <span class="count-error">${counts.php_error} PHP err</span>`;
+        } else {
+            const filterName = {
+                error: 'Errores',
+                warn: 'Warnings',
+                php: 'PHP',
+                network: 'Red',
+                security: 'Seguridad'
+            };
+            countText = `${filtered} ${filterName[this.state.currentFilter] || this.state.currentFilter} de ${total} logs`;
+        }
+
+        $('.cm-logs-count').html(countText);
+    };
+
+    // Limpiar logs del terminal
+    window.ConsoleMonitor.clearTerminalLogs = function () {
         const self = this;
 
+        // Limpiar logs de JavaScript
+        if (window.CMPro && window.CMPro.logs) {
+            window.CMPro.logs = [];
+        }
+
+        // Limpiar logs de PHP en el servidor
         $.post(cmData.ajax_url, {
-            action: 'cm_remove_marker',
-            nonce: cmData.nonce,
-            note_id: noteId
+            action: 'cm_clear_logs',
+            nonce: cmData.nonce
         }, function (response) {
             if (response.success) {
-                self.removePageMarker(noteId);
-                self.loadNotesFromDB();
-                self.showNotification('Marcador eliminado', 'success');
+                self.state.terminalLogs = [];
+                self.renderTerminalLogs();
+                self.showNotification('Logs limpiados', 'success');
+            } else {
+                self.showNotification('Error al limpiar logs', 'error');
             }
         });
     };
 
     // ========================================
-    // UTILIDADES
+    // POLLING DE LOGS
     // ========================================
 
-    // Mostrar notificaciones
-    window.ConsoleMonitor.showNotification = function (message, type = 'info', duration = 3000) {
-        const colors = {
-            success: '#27ae60',
-            error: '#e74c3c',
-            info: '#3498db',
-            warning: '#f39c12'
-        };
-
-        const notification = $(`
-            <div class="cm-notification" style="
-                background: ${colors[type]};
-                color: white;
-            ">${message}</div>
-        `);
-
-        $('body').append(notification);
-
-        // Animar entrada
-        setTimeout(() => {
-            notification.css('transform', 'translateX(0)');
-        }, 100);
-
-        // Auto-remover
-        setTimeout(() => {
-            notification.css('transform', 'translateX(100%)');
-            setTimeout(() => notification.remove(), 300);
-        }, duration);
+    // Configurar actualizaciones automáticas de logs
+    window.ConsoleMonitor.setupLogUpdates = function () {
+        // Los logs de JavaScript se actualizan automáticamente
+        // Solo necesitamos polling para logs de PHP
     };
 
-    console.log('📝 Console Monitor Notes module loaded successfully');
+    // Iniciar polling de logs
+    window.ConsoleMonitor.startLogPolling = function () {
+        if (this.state.logUpdateInterval) {
+            clearInterval(this.state.logUpdateInterval);
+        }
+
+        const self = this;
+        this.state.logUpdateInterval = setInterval(function () {
+            if (self.state.activePanel === 'terminal') {
+                self.loadTerminalLogs();
+            }
+        }, 2000); // Actualizar cada 2 segundos
+
+        console.log('🐛 Log polling started');
+    };
+
+    // Detener polling de logs
+    window.ConsoleMonitor.stopLogPolling = function () {
+        if (this.state.logUpdateInterval) {
+            clearInterval(this.state.logUpdateInterval);
+            this.state.logUpdateInterval = null;
+        }
+
+        console.log('🐛 Log polling stopped');
+    };
+
+    // ========================================
+    // SCROLL Y NAVEGACIÓN
+    // ========================================
+
+    // Manejar scroll de logs
+    window.ConsoleMonitor.handleLogsScroll = function () {
+        if (!this.elements.$logsContainer.length) return;
+
+        const $container = this.elements.$logsContainer;
+        const scrollTop = $container.scrollTop();
+        const scrollHeight = $container[0].scrollHeight;
+        const clientHeight = $container.height();
+
+        // Mostrar/ocultar botón scroll to bottom
+        const isNearBottom = (scrollHeight - scrollTop - clientHeight) < 50;
+
+        if (isNearBottom) {
+            this.state.autoScroll = true;
+            $('.cm-scroll-to-bottom').removeClass('show');
+        } else {
+            this.state.autoScroll = false;
+            $('.cm-scroll-to-bottom').addClass('show');
+        }
+    };
+
+    // Scroll automático al final
+    window.ConsoleMonitor.scrollLogsToBottom = function () {
+        if (!this.elements.$logsContainer.length) return;
+
+        const $container = this.elements.$logsContainer;
+        $container.animate({
+            scrollTop: $container[0].scrollHeight
+        }, 300);
+
+        this.state.autoScroll = true;
+        $('.cm-scroll-to-bottom').removeClass('show');
+    };
+
+    // ========================================
+    // FUNCIÓN ESPECÍFICA PARA PANEL DE TERMINAL
+    // ========================================
+
+    // Función selectTerminal específica (llamada desde el core)
+    window.ConsoleMonitor.selectTerminal = function () {
+        console.log('🐛 Terminal panel selected');
+        // La lógica de apertura ya está en el core selectPanel()
+        // Aquí podemos agregar lógica específica del terminal si es necesaria
+    };
+
+    // ========================================
+    // UTILIDADES DEL TERMINAL SIMPLIFICADAS
+    // ========================================
+
+    // Agregar log programáticamente
+    window.ConsoleMonitor.addLogEntry = function (type, message, source = '') {
+        const logEntry = {
+            type: type,
+            message: message,
+            time: new Date().toLocaleTimeString(),
+            source: source
+        };
+
+        this.state.terminalLogs.push(logEntry);
+
+        // Mantener límite de logs
+        if (this.state.terminalLogs.length > this.state.maxLogs) {
+            this.state.terminalLogs = this.state.terminalLogs.slice(-80);
+        }
+
+        // Re-renderizar si el terminal está abierto
+        if (this.state.activePanel === 'terminal') {
+            this.renderTerminalLogs();
+        }
+    };
+
+    // Exportar logs simple
+    window.ConsoleMonitor.exportLogs = function (format = 'text') {
+        const logs = this.state.terminalLogs;
+
+        const textData = logs.map(log =>
+            `[${log.time}] ${log.type.toUpperCase()}: ${log.message} ${log.source ? `(${log.source})` : ''}`
+        ).join('\n');
+
+        const blob = new Blob([textData], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'console-logs.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showNotification('Logs exportados', 'success');
+    };
+
+    // ========================================
+    // DEBUGGING SIMPLE
+    // ========================================
+
+    // Debug: Simular logs de prueba
+    window.ConsoleMonitor.generateTestLogs = function () {
+        const testLogs = [
+            { type: 'error', message: 'Error de JavaScript: función no encontrada', source: 'test.js:1' },
+            { type: 'warn', message: 'Warning: variable no utilizada', source: 'test.js:2' },
+            { type: 'php_error', message: 'PHP Fatal Error: Call to undefined function', source: 'test.php:10' },
+            { type: 'php_warning', message: 'PHP Warning: Invalid argument supplied', source: 'test.php:15' },
+            { type: 'network', message: 'Failed to fetch data from API', source: 'network' },
+            { type: 'security', message: 'Unauthorized access attempt detected', source: 'security' }
+        ];
+
+        testLogs.forEach(log => {
+            this.addLogEntry(log.type, log.message, log.source);
+        });
+
+        this.showNotification('Logs de prueba generados', 'info');
+    };
+
+    // ========================================
+    // EVENTOS PERSONALIZADOS SIMPLES
+    // ========================================
+
+    // Escuchar eventos personalizados para logs
+    $(document).on('cm:log', function (e, logData) {
+        if (window.ConsoleMonitor && logData) {
+            window.ConsoleMonitor.addLogEntry(
+                logData.type || 'log',
+                logData.message || '',
+                logData.source || ''
+            );
+        }
+    });
+
+    // Escuchar errores de window
+    window.addEventListener('unhandledrejection', function (event) {
+        if (window.ConsoleMonitor) {
+            window.ConsoleMonitor.addLogEntry(
+                'error',
+                'Unhandled Promise Rejection: ' + event.reason,
+                'Promise'
+            );
+        }
+    });
+
+    // ========================================
+    // CLEANUP
+    // ========================================
+
+    // Cleanup al cerrar
+    $(window).on('beforeunload', function () {
+        if (window.ConsoleMonitor && window.ConsoleMonitor.stopLogPolling) {
+            window.ConsoleMonitor.stopLogPolling();
+        }
+    });
+
+    console.log('🐛 Console Monitor Terminal module loaded successfully');
 
 })(jQuery);

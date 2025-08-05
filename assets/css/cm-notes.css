@@ -1,19 +1,19 @@
 /* 
- * Console Monitor Pro - CSS NOTAS
+ * Console Monitor Pro - CSS NOTAS Y MARCADORES COMPLETO
  * assets/css/cm-notes.css
- * Estilos completos: notas, checklist, marcadores en página
+ * Sistema avanzado: notas, marcadores, navegación entre páginas
  * Requiere: cm-core.css
  */
 
 /* ========================================
-   PANEL DE NOTAS
+   PANEL DE NOTAS CON SISTEMA DE MARCADORES
 ======================================== */
 
 .cm-notes {
     top: 20px;
     right: 20px;
     transform: translateX(100%);
-    width: 420px;
+    width: 500px; /* Más ancho para incluir lista de marcadores */
     height: calc(100vh - 40px);
     max-height: none;
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -24,7 +24,7 @@
 }
 
 /* ========================================
-   HEADER DE NOTAS CON ACCIONES
+   HEADER DE NOTAS CON MODO MARCADOR
 ======================================== */
 
 .cm-notes-header-actions {
@@ -55,8 +55,177 @@
     box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
 }
 
+.cm-btn-marker-mode {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cm-btn-marker-mode:hover {
+    background: linear-gradient(135deg, #e67e22 0%, #f39c12 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+}
+
+.cm-btn-marker-mode.active {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    animation: markerModeActive 1s infinite alternate;
+}
+
+@keyframes markerModeActive {
+    0% { box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3); }
+    100% { box-shadow: 0 4px 15px rgba(231, 76, 60, 0.6); }
+}
+
 /* ========================================
-   CONTENEDOR DE NOTAS
+   CONTENEDOR PRINCIPAL CON DOS COLUMNAS
+======================================== */
+
+.cm-notes-main {
+    display: flex;
+    height: 100%;
+    gap: 12px;
+    padding: 0;
+}
+
+.cm-notes-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Permite que se reduzca */
+}
+
+.cm-notes-right {
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #333;
+    padding-left: 12px;
+    flex-shrink: 0;
+}
+
+/* ========================================
+   LISTA DE MARCADORES
+======================================== */
+
+.cm-markers-list {
+    background: #1a1a1a;
+    flex: 1;
+    overflow-y: auto;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+.cm-markers-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.cm-markers-list::-webkit-scrollbar-track {
+    background: #2c2c2c;
+}
+
+.cm-markers-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 2px;
+}
+
+.cm-markers-title {
+    color: #ecf0f1;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding: 12px 12px 8px 12px;
+    border-bottom: 1px solid #333;
+    background: rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.cm-marker-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.cm-marker-item:hover {
+    background: rgba(243, 156, 18, 0.1);
+    border-left: 3px solid #f39c12;
+    padding-left: 9px;
+    transform: translateX(2px);
+}
+
+.cm-marker-item.current-page {
+    background: rgba(39, 174, 96, 0.1);
+    border-left: 3px solid #27ae60;
+    padding-left: 9px;
+}
+
+.cm-marker-item.current-page:hover {
+    background: rgba(39, 174, 96, 0.2);
+    border-left-color: #2ecc71;
+}
+
+.cm-marker-item.other-page {
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 3px solid #3498db;
+    padding-left: 9px;
+}
+
+.cm-marker-item.other-page:hover {
+    background: rgba(52, 152, 219, 0.2);
+    border-left-color: #5dade2;
+}
+
+.cm-marker-title {
+    color: #e6e6e6;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.cm-marker-page {
+    color: #7f8c8d;
+    font-size: 9px;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cm-marker-page .page-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.cm-marker-page .current {
+    background: #27ae60;
+    box-shadow: 0 0 4px rgba(39, 174, 96, 0.5);
+}
+
+.cm-marker-page .other {
+    background: #3498db;
+    box-shadow: 0 0 4px rgba(52, 152, 219, 0.5);
+}
+
+/* ========================================
+   CONTENEDOR DE NOTAS (COLUMNA IZQUIERDA)
 ======================================== */
 
 .cm-notes-container {
@@ -64,6 +233,8 @@
     overflow-y: auto;
     padding: 0;
     background: #1a1a1a;
+    border-radius: 6px;
+    border: 1px solid #333;
 }
 
 .cm-notes-container::-webkit-scrollbar {
@@ -114,6 +285,11 @@
 .cm-note-item.has-marker {
     border-left: 4px solid #f39c12;
     background: linear-gradient(90deg, rgba(243, 156, 18, 0.1) 0%, #252525 20%);
+}
+
+.cm-note-item.has-marker:hover {
+    border-left-color: #e67e22;
+    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.2);
 }
 
 /* ========================================
@@ -308,7 +484,7 @@
 }
 
 /* ========================================
-   MARCADORES EN LA PÁGINA
+   MARCADORES EN LA PÁGINA MEJORADOS
 ======================================== */
 
 .cm-page-marker {
@@ -349,6 +525,27 @@
     animation: none;
 }
 
+.cm-page-marker.highlight {
+    animation: markerHighlight 3s ease-out;
+}
+
+@keyframes markerHighlight {
+    0%, 100% {
+        transform: scale(1);
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    }
+    25% {
+        transform: scale(1.4);
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        box-shadow: 0 10px 40px rgba(231, 76, 60, 0.8);
+    }
+    75% {
+        transform: scale(1.2);
+        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        box-shadow: 0 8px 30px rgba(39, 174, 96, 0.6);
+    }
+}
+
 .cm-page-marker::before {
     content: '';
     position: absolute;
@@ -373,7 +570,7 @@
 }
 
 /* ========================================
-   TOOLTIP DEL MARCADOR
+   TOOLTIP DEL MARCADOR MEJORADO
 ======================================== */
 
 .cm-marker-tooltip {
@@ -381,22 +578,23 @@
     bottom: 40px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
     color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 11px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
     transition: all 0.3s ease;
     z-index: 99996;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    max-width: 200px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    max-width: 300px;
     word-break: break-word;
     white-space: normal;
     text-align: center;
+    border: 1px solid rgba(243, 156, 18, 0.3);
 }
 
 .cm-marker-tooltip::after {
@@ -405,8 +603,8 @@
     top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.9);
+    border: 8px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.95);
 }
 
 .cm-page-marker:hover .cm-marker-tooltip {
@@ -415,7 +613,70 @@
 }
 
 /* ========================================
-   FORMULARIO DE NUEVA NOTA
+   MODO MARCADOR ACTIVO MEJORADO
+======================================== */
+
+body.cm-marker-mode {
+    cursor: crosshair !important;
+}
+
+body.cm-marker-mode * {
+    cursor: crosshair !important;
+}
+
+body.cm-marker-mode::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, 
+        rgba(243, 156, 18, 0.05) 0%, 
+        rgba(230, 126, 34, 0.1) 50%, 
+        rgba(243, 156, 18, 0.05) 100%);
+    z-index: 99993;
+    pointer-events: none;
+    animation: markerModeOverlay 2s infinite alternate;
+}
+
+@keyframes markerModeOverlay {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.7; }
+}
+
+/* Indicador de modo marcador */
+.cm-marker-mode-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #f39c12;
+    padding: 20px 30px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    z-index: 99997;
+    border: 2px solid #f39c12;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    animation: markerIndicator 1s ease-out;
+}
+
+@keyframes markerIndicator {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* ========================================
+   FORMULARIO DE NUEVA NOTA CON MARCADOR
 ======================================== */
 
 .cm-note-form {
@@ -426,6 +687,11 @@
     padding: 16px;
     animation: noteFormSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+}
+
+.cm-note-form.with-marker {
+    border-color: #f39c12;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1) 0%, #2c2c2c 20%);
 }
 
 @keyframes noteFormSlide {
@@ -441,6 +707,29 @@
         max-height: 500px;
         padding: 16px;
     }
+}
+
+.cm-marker-info {
+    background: rgba(243, 156, 18, 0.2);
+    border: 1px solid rgba(243, 156, 18, 0.4);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    color: #f39c12;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cm-marker-info .marker-icon {
+    font-size: 14px;
+}
+
+.cm-marker-coordinates {
+    color: rgba(243, 156, 18, 0.8);
+    font-size: 10px;
+    margin-left: auto;
 }
 
 .cm-form-group {
@@ -566,74 +855,6 @@
 }
 
 /* ========================================
-   RESPONSIVE PARA NOTAS
-======================================== */
-
-@media (max-width: 1024px) {
-    .cm-notes {
-        right: 10px;
-        width: 360px;
-    }
-}
-
-@media (max-width: 768px) {
-    .cm-notes {
-        width: calc(100vw - 20px);
-        right: 10px;
-        left: 10px;
-        transform: translateY(-100%);
-        top: 10px !important;
-        height: calc(100vh - 20px) !important;
-    }
-    
-    .cm-notes.show {
-        transform: translateY(0);
-    }
-    
-    .cm-note-item {
-        margin: 8px;
-    }
-    
-    .cm-page-marker {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-    }
-    
-    .cm-marker-tooltip {
-        font-size: 10px;
-        padding: 6px 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .cm-btn-add-note {
-        padding: 4px 8px;
-        font-size: 10px;
-    }
-    
-    .cm-btn-add-note .cm-btn-text {
-        display: none;
-    }
-    
-    .cm-notes-header-actions {
-        gap: 4px;
-    }
-    
-    .cm-page-marker {
-        width: 24px;
-        height: 24px;
-        font-size: 10px;
-    }
-    
-    .cm-marker-tooltip {
-        bottom: 30px;
-        font-size: 9px;
-        padding: 4px 8px;
-    }
-}
-
-/* ========================================
    ANIMACIONES ESPECÍFICAS
 ======================================== */
 
@@ -676,15 +897,127 @@
 }
 
 /* ========================================
-   MODO MARCADOR ACTIVO
+   RESPONSIVE MEJORADO PARA NOTAS
 ======================================== */
 
-body.cm-marker-mode {
-    cursor: crosshair !important;
+@media (max-width: 1200px) {
+    .cm-notes {
+        width: 450px;
+    }
+    
+    .cm-notes-right {
+        width: 140px;
+    }
 }
 
-body.cm-marker-mode * {
-    cursor: crosshair !important;
+@media (max-width: 1024px) {
+    .cm-notes {
+        right: 10px;
+        width: 400px;
+    }
+    
+    .cm-notes-right {
+        width: 120px;
+    }
+    
+    .cm-marker-title {
+        font-size: 10px;
+    }
+    
+    .cm-marker-page {
+        font-size: 8px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cm-notes {
+        width: calc(100vw - 20px);
+        right: 10px;
+        left: 10px;
+        transform: translateY(-100%);
+        top: 10px !important;
+        height: calc(100vh - 20px) !important;
+    }
+    
+    .cm-notes.show {
+        transform: translateY(0);
+    }
+    
+    .cm-notes-main {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .cm-notes-right {
+        width: 100%;
+        height: 150px;
+        border-left: none;
+        border-top: 1px solid #333;
+        padding-left: 0;
+        padding-top: 12px;
+    }
+    
+    .cm-note-item {
+        margin: 8px;
+    }
+    
+    .cm-page-marker {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .cm-marker-tooltip {
+        font-size: 10px;
+        padding: 8px 12px;
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cm-btn-add-note, 
+    .cm-btn-marker-mode {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+    
+    .cm-btn-add-note .cm-btn-text,
+    .cm-btn-marker-mode .cm-btn-text {
+        display: none;
+    }
+    
+    .cm-notes-header-actions {
+        gap: 4px;
+    }
+    
+    .cm-page-marker {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+    
+    .cm-marker-tooltip {
+        bottom: 30px;
+        font-size: 9px;
+        padding: 6px 10px;
+    }
+    
+    .cm-marker-item {
+        padding: 6px 10px;
+    }
+    
+    .cm-marker-title {
+        font-size: 10px;
+    }
+    
+    .cm-marker-page {
+        font-size: 8px;
+    }
+    
+    .cm-marker-mode-indicator {
+        padding: 15px 20px;
+        font-size: 14px;
+    }
 }
 
 /* ========================================
@@ -705,18 +1038,28 @@ body.cm-marker-mode * {
     .cm-checklist-checkbox {
         border-width: 3px;
     }
+    
+    .cm-marker-item {
+        border-left-width: 4px;
+    }
 }
 
 /* Reducir movimiento */
 @media (prefers-reduced-motion: reduce) {
     .cm-note-item,
     .cm-page-marker,
-    .cm-checklist-checkbox {
+    .cm-checklist-checkbox,
+    .cm-marker-item,
+    .cm-btn-marker-mode {
         animation: none;
         transition: none;
     }
     
     .cm-page-marker::before {
+        animation: none;
+    }
+    
+    body.cm-marker-mode::before {
         animation: none;
     }
 }
@@ -741,5 +1084,122 @@ body.cm-marker-mode * {
     .cm-note-item {
         background: #161b22;
         border-color: #21262d;
+    }
+    
+    .cm-markers-list {
+        background: #0d1117;
+        border-color: #21262d;
+    }
+    
+    .cm-notes-container {
+        background: #0d1117;
+        border-color: #21262d;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+======================================== */
+
+@media print {
+    .cm-notes,
+    .cm-page-marker,
+    .cm-marker-mode-indicator {
+        display: none;
+    }
+}
+
+/* ========================================
+   ESTADOS ESPECIALES
+======================================== */
+
+/* Estado de carga */
+.cm-notes.loading {
+    opacity: 0.7;
+}
+
+.cm-notes.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(39, 174, 96, 0.3);
+    border-top: 3px solid #27ae60;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 10;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Estado offline */
+.cm-notes.offline {
+    border: 2px solid #e74c3c;
+}
+
+.cm-notes.offline::before {
+    content: '⚠️ Modo offline';
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #e74c3c;
+    color: white;
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 0 0 0 6px;
+    z-index: 10;
+}
+
+/* ========================================
+   UTILIDADES
+======================================== */
+
+.cm-hidden {
+    display: none !important;
+}
+
+.cm-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.cm-loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.cm-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(39, 174, 96, 0.3);
+    border-top: 2px solid #27ae60;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Clase para elementos pulsantes */
+.cm-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
     }
 }
