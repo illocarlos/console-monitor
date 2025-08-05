@@ -1,0 +1,591 @@
+/* 
+ * Console Monitor Pro - CSS IPHONE/TABLET
+ * assets/css/cm-iphone.css
+ * Estilos solo para: simulador móvil, dispositivos, orientaciones
+ * Requiere: cm-core.css
+ */
+
+/* ========================================
+   PANEL IPHONE/TABLET
+======================================== */
+
+.cm-iphone {
+    top: 20px;
+    right: 20px;
+    transform: translateX(100%);
+    width: 380px; /* Default para phones */
+    height: calc(100vh - 40px);
+    max-height: none;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cm-iphone.show {
+    transform: translateX(0);
+}
+
+/* Ancho específico para tablets - mucho más ancho */
+.cm-iphone.tablet-mode {
+    width: 500px; /* Más ancho para tablets */
+}
+
+/* ========================================
+   SELECTOR DE DISPOSITIVOS
+======================================== */
+
+.cm-device-selector {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 8px;
+    min-width: 180px;
+    transition: all 0.2s ease;
+}
+
+.cm-device-selector:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.2);
+}
+
+.cm-device-selector:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.cm-device-selector option {
+    background: #2c3e50;
+    color: white;
+    padding: 4px;
+}
+
+.cm-device-selector optgroup {
+    background: #34495e;
+    color: #ecf0f1;
+    font-weight: bold;
+    padding: 2px;
+}
+
+.cm-device-selector optgroup option {
+    background: #2c3e50;
+    color: #bdc3c7;
+    font-weight: normal;
+    padding-left: 8px;
+}
+
+/* ========================================
+   BOTÓN DE ROTACIÓN
+======================================== */
+
+.cm-btn-rotate {
+    background: rgba(233, 30, 99, 0.1);
+    color: #e91e63;
+    border: 1px solid rgba(233, 30, 99, 0.3);
+    transition: all 0.2s ease;
+}
+
+.cm-btn-rotate:hover {
+    background: rgba(233, 30, 99, 0.2);
+    border-color: #e91e63;
+    color: white;
+    transform: translateY(-1px) rotate(15deg);
+}
+
+/* ========================================
+   FRAME DE DISPOSITIVO
+======================================== */
+
+.cm-iphone-frame {
+    background: #1a1a1a;
+    border-radius: 25px; /* Por defecto para phones */
+    padding: 15px;
+    margin: 20px;
+    position: relative;
+    height: calc(100% - 40px);
+    width: calc(100% - 40px);
+    box-shadow: 
+        inset 0 0 0 2px #333,
+        0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+
+/* Estilos específicos para teléfonos */
+.cm-iphone-frame.device-phone {
+    border-radius: 25px;
+    padding: 15px;
+    background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
+    /* Forma más vertical y estrecha */
+}
+
+/* Estilos específicos para tablets - MARCO MÁS ANCHO Y RECTANGULAR */
+.cm-iphone-frame.device-tablet {
+    border-radius: 12px; /* Mucho menos redondeado */
+    padding: 20px 25px; /* Más padding horizontal */
+    background: linear-gradient(145deg, #1e1e1e 0%, #111111 100%);
+    box-shadow: 
+        inset 0 0 0 2px #444,
+        0 15px 50px rgba(0, 0, 0, 0.4);
+    /* Proporción más horizontal para tablets */
+}
+
+.cm-iphone-frame.landscape {
+    border-radius: 15px;
+    padding: 10px 20px;
+}
+
+/* Tablet en landscape - FORMA MUY RECTANGULAR */
+.cm-iphone-frame.device-tablet.landscape {
+    border-radius: 8px; /* Casi cuadrado */
+    padding: 15px 30px; /* Extra padding horizontal */
+}
+
+/* ========================================
+   SCREEN DEL DISPOSITIVO
+======================================== */
+
+.cm-iphone-screen {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 15px; /* Por defecto para phones */
+    overflow: hidden;
+    position: relative;
+    display: block;
+    flex: 1;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Screen específico para tablets - MUCHO menos redondeado */
+.cm-iphone-frame.device-tablet .cm-iphone-screen {
+    border-radius: 6px; /* Más cuadrado que los phones */
+}
+
+/* Phone screen mantiene esquinas más redondeadas */
+.cm-iphone-frame.device-phone .cm-iphone-screen {
+    border-radius: 15px;
+}
+
+/* Tablet screen en landscape también más cuadrado */
+.cm-iphone-frame.device-tablet.landscape .cm-iphone-screen {
+    border-radius: 4px; /* Muy cuadrado */
+}
+
+.cm-iphone-screen iframe {
+    border: none;
+    background: white;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: inherit;
+}
+
+/* ========================================
+   NOTCH Y HOME INDICATOR
+======================================== */
+
+.cm-iphone-notch {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 20px;
+    background: #1a1a1a;
+    border-radius: 0 0 15px 15px;
+    z-index: 10;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Ocultar notch en tablets */
+.cm-iphone-frame.device-tablet .cm-iphone-notch {
+    display: none;
+}
+
+.cm-iphone-home-indicator {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 4px;
+    background: #666;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    opacity: 0.8;
+}
+
+/* Home indicator diferente para tablets */
+.cm-iphone-frame.device-tablet .cm-iphone-home-indicator {
+    width: 160px; /* Más ancho en tablets */
+    height: 2px;   /* Más fino */
+    background: #555;
+    border-radius: 1px;
+}
+
+/* ========================================
+   INFORMACIÓN DEL DISPOSITIVO
+======================================== */
+
+.cm-device-info {
+    color: #bdc3c7;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cm-device-info::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #27ae60;
+    border-radius: 50%;
+    display: inline-block;
+    animation: deviceStatusPulse 2s infinite;
+}
+
+@keyframes deviceStatusPulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* ========================================
+   ANIMACIONES DE ROTACIÓN
+======================================== */
+
+/* Transición de rotación */
+.cm-iphone-frame.rotating {
+    animation: cm-rotate-device 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cm-rotate-device {
+    0% { 
+        transform: rotate(0deg) scale(1); 
+    }
+    25% {
+        transform: rotate(22.5deg) scale(0.95);
+    }
+    50% { 
+        transform: rotate(45deg) scale(0.9); 
+    }
+    75% {
+        transform: rotate(67.5deg) scale(0.95);
+    }
+    100% { 
+        transform: rotate(90deg) scale(1); 
+    }
+}
+
+/* Animación cuando cambia dispositivo */
+.cm-iphone-frame.changing-device {
+    animation: deviceChange 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes deviceChange {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(0.9);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   ESTADOS DE CARGA
+======================================== */
+
+.cm-iphone-frame.loading {
+    opacity: 0.7;
+}
+
+.cm-iphone-frame.loading .cm-iphone-screen {
+    background: #f5f5f5;
+    position: relative;
+    overflow: hidden;
+}
+
+.cm-iphone-frame.loading .cm-iphone-screen::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* ========================================
+   ORIENTACIONES
+======================================== */
+
+/* Landscape mode adjustments */
+.cm-iphone-frame.landscape {
+    /* El contenedor se mantiene igual, solo cambia el contenido interno */
+}
+
+.cm-iphone-frame.landscape .cm-iphone-notch {
+    display: none; /* Ocultar notch en landscape */
+}
+
+.cm-iphone-frame.landscape .cm-iphone-home-indicator {
+    bottom: -8px;
+    width: 100px;
+    height: 3px;
+}
+
+/* ========================================
+   RESPONSIVE PARA IPHONE/TABLET
+======================================== */
+
+@media (max-width: 1024px) {
+    .cm-iphone {
+        right: 10px;
+        width: 300px; /* Más pequeño en tablets reales */
+    }
+    
+    /* Tablets en modo tablet siguen siendo anchas pero más pequeñas */
+    .cm-iphone.tablet-mode {
+        width: 400px;
+    }
+    
+    .cm-device-selector {
+        min-width: 140px;
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cm-iphone {
+        top: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        height: calc(100vh - 20px) !important;
+        max-height: none !important;
+        transform: none !important;
+    }
+    
+    .cm-iphone.show {
+        transform: none !important;
+    }
+    
+    .cm-iphone-frame {
+        margin: 10px;
+        padding: 10px;
+    }
+    
+    .cm-device-selector {
+        min-width: 120px;
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cm-device-selector {
+        min-width: 100px;
+        font-size: 8px;
+        padding: 3px 6px;
+    }
+    
+    .cm-iphone-frame {
+        margin: 5px;
+        padding: 8px;
+    }
+    
+    .cm-device-info {
+        font-size: 9px;
+    }
+}
+
+/* ========================================
+   TIPOS DE DISPOSITIVO ESPECÍFICOS
+======================================== */
+
+/* iPhone específicos */
+.cm-iphone-frame[data-device^="iphone"] {
+    background: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
+}
+
+.cm-iphone-frame[data-device^="iphone"] .cm-iphone-screen {
+    border-radius: 15px;
+}
+
+/* iPad específicos */
+.cm-iphone-frame[data-device^="ipad"] {
+    background: linear-gradient(145deg, #1e1e1e 0%, #111111 100%);
+    border-radius: 12px;
+}
+
+.cm-iphone-frame[data-device^="ipad"] .cm-iphone-screen {
+    border-radius: 8px;
+}
+
+.cm-iphone-frame[data-device^="ipad"] .cm-iphone-notch {
+    display: none;
+}
+
+/* Galaxy/Android tablets específicos */
+.cm-iphone-frame[data-device^="galaxy"],
+.cm-iphone-frame[data-device^="surface"],
+.cm-iphone-frame[data-device^="pixel"] {
+    background: linear-gradient(145deg, #2c2c2c 0%, #1a1a1a 100%);
+    border-radius: 10px;
+}
+
+.cm-iphone-frame[data-device^="galaxy"] .cm-iphone-screen,
+.cm-iphone-frame[data-device^="surface"] .cm-iphone-screen,
+.cm-iphone-frame[data-device^="pixel"] .cm-iphone-screen {
+    border-radius: 6px;
+}
+
+.cm-iphone-frame[data-device^="galaxy"] .cm-iphone-notch,
+.cm-iphone-frame[data-device^="surface"] .cm-iphone-notch,
+.cm-iphone-frame[data-device^="pixel"] .cm-iphone-notch {
+    display: none;
+}
+
+/* ========================================
+   EFECTOS VISUALES AVANZADOS
+======================================== */
+
+/* Efecto de profundidad para el frame */
+.cm-iphone-frame::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.1) 100%
+    );
+    border-radius: inherit;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Reflejo en la pantalla */
+.cm-iphone-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        transparent 100%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ========================================
+   MODO OSCURO ESPECÍFICO
+======================================== */
+
+@media (prefers-color-scheme: dark) {
+    .cm-iphone-frame {
+        background: linear-gradient(145deg, #0a0a0a 0%, #000000 100%);
+        box-shadow: 
+            inset 0 0 0 2px #222,
+            0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    .cm-device-selector {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .cm-device-selector option {
+        background: #1a1a1a;
+    }
+}
+
+/* ========================================
+   ALTO CONTRASTE
+======================================== */
+
+@media (prefers-contrast: high) {
+    .cm-iphone-frame {
+        border: 3px solid #fff;
+    }
+    
+    .cm-iphone-screen {
+        border: 2px solid #000;
+    }
+    
+    .cm-device-selector {
+        border-width: 2px;
+        border-color: #fff;
+    }
+}
+
+/* ========================================
+   REDUCIR MOVIMIENTO
+======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .cm-iphone-frame,
+    .cm-device-selector,
+    .cm-btn-rotate,
+    .cm-iphone-screen {
+        animation: none;
+        transition: none;
+    }
+    
+    .cm-device-info::before {
+        animation: none;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+======================================== */
+
+@media print {
+    .cm-iphone {
+        display: none;
+    }
+}

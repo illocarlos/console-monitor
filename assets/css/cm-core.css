@@ -1,0 +1,545 @@
+/* 
+ * Console Monitor Pro - CSS CORE
+ * assets/css/cm-core.css
+ * Estilos base: botón flotante, overlay, animaciones base
+ */
+
+/* ========================================
+   RESET Y BASE
+======================================== */
+
+html #wpadminbar {
+    position: fixed !important;
+}
+
+/* ========================================
+   BOTÓN FLOTANTE PRINCIPAL
+======================================== */
+
+.cm-floating-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 99998;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    user-select: none;
+}
+
+.cm-floating-container.dragging {
+    transition: none;
+    cursor: grabbing;
+    z-index: 99999;
+}
+
+.cm-floating-container.dragging .cm-floating-btn {
+    transform: scale(1.1);
+    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.8);
+}
+
+.cm-floating-btn {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    position: relative;
+    border: none;
+    outline: none;
+}
+
+.cm-floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+.cm-btn-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.cm-btn-icon {
+    font-size: 20px;
+    transition: all 0.3s ease;
+}
+
+.cm-btn-text {
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+/* ========================================
+   BOTONES EXPANDIDOS (BASE)
+======================================== */
+
+.cm-expanded-buttons {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cm-floating-container.expanded .cm-expanded-buttons {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.cm-floating-container.expanded .cm-floating-btn {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    transform: scale(0.8);
+    opacity: 0.3;
+}
+
+.cm-option-btn {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transform: scale(0);
+    opacity: 0;
+}
+
+.cm-floating-container.expanded .cm-option-btn {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.cm-option-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================================
+   POSICIONES DE BOTONES EXPANDIDOS
+======================================== */
+
+.cm-option-btn.notes {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    bottom: 120px;
+    right: -10px;
+}
+
+.cm-option-btn.terminal {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    bottom: 80px;
+    right: 5px;
+}
+
+.cm-option-btn.iphone {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    bottom: 40px;
+    right: -40px;
+}
+
+/* Delays de aparición */
+.cm-floating-container.expanded .cm-option-btn.notes {
+    transition-delay: 0.05s;
+}
+
+.cm-floating-container.expanded .cm-option-btn.terminal {
+    transition-delay: 0.1s;
+}
+
+.cm-floating-container.expanded .cm-option-btn.iphone {
+    transition-delay: 0.2s;
+}
+
+/* Hovers específicos */
+.cm-option-btn.notes:hover {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+}
+
+.cm-option-btn.terminal:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+}
+
+.cm-option-btn.iphone:hover {
+    background: linear-gradient(135deg, #ad1457 0%, #e91e63 100%);
+}
+
+/* ========================================
+   ESTADOS ACTIVOS DEL BOTÓN PRINCIPAL
+======================================== */
+
+.cm-floating-container.notes-active .cm-floating-btn {
+    width: 80px;
+    height: 50px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+}
+
+.cm-floating-container.terminal-active .cm-floating-btn {
+    width: 80px;
+    height: 50px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.cm-floating-container.iphone-active .cm-floating-btn {
+    width: 50px;
+    height: 90px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+}
+
+/* ========================================
+   TRANSFORMACIONES DEL BOTÓN
+======================================== */
+
+.cm-floating-container.transforming-notes .cm-floating-btn {
+    animation: morphToNotes 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.cm-floating-container.transforming-terminal .cm-floating-btn {
+    animation: morphToTerminal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.cm-floating-container.transforming-iphone .cm-floating-btn {
+    animation: morphToIphone 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+/* ========================================
+   KEYFRAMES DE TRANSFORMACIÓN
+======================================== */
+
+@keyframes morphToNotes {
+    0% {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: scale(1);
+    }
+    50% {
+        width: 65px;
+        height: 55px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        transform: scale(1.1);
+    }
+    100% {
+        width: 80px;
+        height: 50px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        transform: scale(1);
+    }
+}
+
+@keyframes morphToTerminal {
+    0% {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: scale(1);
+    }
+    50% {
+        width: 65px;
+        height: 55px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        transform: scale(1.1);
+    }
+    100% {
+        width: 80px;
+        height: 50px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        transform: scale(1);
+    }
+}
+
+@keyframes morphToIphone {
+    0% {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: scale(1);
+    }
+    50% {
+        width: 45px;
+        height: 75px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+        transform: scale(1.1);
+    }
+    100% {
+        width: 50px;
+        height: 90px;
+        border-radius: 25px;
+        background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   PANELES BASE
+======================================== */
+
+.cm-panel {
+    position: fixed;
+    background: #1e1e1e;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 99990;
+    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+    display: none;
+    flex-direction: column;
+    border: 1px solid #333;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cm-panel.show {
+    display: flex;
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ========================================
+   HEADER DE PANELES
+======================================== */
+
+.cm-panel-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    padding: 12px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    border-bottom: 1px solid #444;
+}
+
+.cm-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.cm-title-icon {
+    font-size: 16px;
+}
+
+.cm-panel-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.cm-panel-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.cm-panel-controls button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* ========================================
+   BODY DE PANELES
+======================================== */
+
+.cm-panel-body {
+    flex: 1;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+/* ========================================
+   FOOTER DE PANELES
+======================================== */
+
+.cm-panel-footer {
+    background: #2c2c2c;
+    padding: 8px 16px;
+    border-radius: 0 0 12px 12px;
+    border-top: 1px solid #444;
+    font-size: 11px;
+    color: #bdc3c7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ========================================
+   OVERLAY
+======================================== */
+
+.cm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+    z-index: 99989;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.cm-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========================================
+   ANIMACIONES ESPECIALES
+======================================== */
+
+.cm-panel.entering {
+    animation: cm-panel-enter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.cm-panel.leaving {
+    animation: cm-panel-leave 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes cm-panel-enter {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes cm-panel-leave {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px);
+    }
+}
+
+/* ========================================
+   NOTIFICACIONES GLOBALES
+======================================== */
+
+.cm-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 99999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    color: white;
+}
+
+/* ========================================
+   RESPONSIVE BASE
+======================================== */
+
+@media (max-width: 768px) {
+    .cm-floating-container {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .cm-floating-btn {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .cm-panel {
+        top: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        height: calc(100vh - 20px) !important;
+        max-height: none !important;
+        transform: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .cm-panel-controls {
+        gap: 4px;
+    }
+    
+    .cm-panel-controls button {
+        width: 24px;
+        height: 24px;
+        font-size: 10px;
+    }
+}
+
+/* ========================================
+   UTILIDADES
+======================================== */
+
+.cm-hidden {
+    display: none !important;
+}
+
+.cm-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Reducir movimiento para usuarios sensibles */
+@media (prefers-reduced-motion: reduce) {
+    .cm-floating-container,
+    .cm-floating-btn,
+    .cm-panel,
+    .cm-option-btn {
+        animation: none;
+        transition: none;
+    }
+}
