@@ -8,6 +8,16 @@
 /* ========================================
    PANEL IPHONE/TABLET
 ======================================== */
+#cm-iphone-frame #cm-floating-btn{
+    display: none !important;
+    z-index: -999999999;
+}
+#cm-iphone-frame .cm-floating-btn{
+
+        width: 0px !important;
+        height: 0px !important;
+}
+
 
 .cm-iphone {
     top: 20px;

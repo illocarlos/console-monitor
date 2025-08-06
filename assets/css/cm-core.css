@@ -40,7 +40,7 @@ html #wpadminbar {
 .cm-floating-btn {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-image: linear-gradient(90deg, #E83369 0%, #C04291 100%);
     border-radius: 50%;
     cursor: pointer;
     box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
@@ -136,19 +136,19 @@ html #wpadminbar {
 ======================================== */
 
 .cm-option-btn.notes {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    bottom: 120px;
-    right: -10px;
+  background-image: linear-gradient(90deg, #E83369 0%, #C04291 100%);
+      bottom: -20px;
+    right: -49px;
 }
 
 .cm-option-btn.terminal {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  background-image: linear-gradient(90deg, #E83369 0%, #C04291 100%);
     bottom: 80px;
     right: 5px;
 }
 
 .cm-option-btn.iphone {
-    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+background-image: linear-gradient(90deg, #E83369 0%, #C04291 100%);
     bottom: 40px;
     right: -40px;
 }
@@ -168,7 +168,7 @@ html #wpadminbar {
 
 /* Hovers específicos */
 .cm-option-btn.notes:hover {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    background-image: linear-gradient(90deg, #C04291 0%, #E83369 100%);
 }
 
 .cm-option-btn.terminal:hover {
