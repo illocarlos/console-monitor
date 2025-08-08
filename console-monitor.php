@@ -21,7 +21,7 @@ define('CONSOLE_MONITOR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CONSOLE_MONITOR_ASSETS_URL', CONSOLE_MONITOR_PLUGIN_URL . 'assets/');
 
 /**
- * Clase principal del plugin - TODO EN UNO
+ * Clase principal del plugin - TODO EN UNO + SISTEMA BÁSICO DE NOTAS
  */
 class ConsoleMonitorPro {
     
@@ -29,6 +29,7 @@ class ConsoleMonitorPro {
     private $log_buffer = array();
     private $max_logs = 100;
     private $notes_table;
+    private $simple_notes_table;
     
     /**
      * Singleton pattern
@@ -46,6 +47,7 @@ class ConsoleMonitorPro {
     private function __construct() {
         global $wpdb;
         $this->notes_table = $wpdb->prefix . 'console_monitor_notes';
+        $this->simple_notes_table = $wpdb->prefix . 'cm_simple_notes';
         $this->init();
     }
     
@@ -58,8 +60,9 @@ class ConsoleMonitorPro {
             return;
         }
         
-        // IMPORTANTE: Crear tabla al inicializar
+        // Crear tablas al inicializar
         add_action('init', array($this, 'maybe_create_notes_table'));
+        add_action('init', array($this, 'maybe_create_simple_notes_table'));
         
         // Hooks básicos
         add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
@@ -69,15 +72,11 @@ class ConsoleMonitorPro {
         add_action('wp_footer', array($this, 'render_floating_interface'));
         add_action('admin_footer', array($this, 'render_floating_interface'));
         
-        // NUEVO: Renderizar marcadores en la página
-        add_action('wp_footer', array($this, 'render_page_markers'));
-        add_action('admin_footer', array($this, 'render_page_markers'));
-        
         // AJAX handlers - TERMINAL
         add_action('wp_ajax_cm_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_cm_clear_logs', array($this, 'ajax_clear_logs'));
         
-        // AJAX handlers - NOTAS
+        // AJAX handlers - NOTAS ORIGINALES
         add_action('wp_ajax_cm_get_notes', array($this, 'ajax_get_notes'));
         add_action('wp_ajax_cm_save_note', array($this, 'ajax_save_note'));
         add_action('wp_ajax_cm_delete_note', array($this, 'ajax_delete_note'));
@@ -85,20 +84,24 @@ class ConsoleMonitorPro {
         add_action('wp_ajax_cm_save_marker', array($this, 'ajax_save_marker'));
         add_action('wp_ajax_cm_remove_marker', array($this, 'ajax_remove_marker'));
         
+        // AJAX handlers - NOTAS BÁSICAS
+        add_action('wp_ajax_cm_get_simple_notes', array($this, 'ajax_get_simple_notes'));
+        add_action('wp_ajax_cm_save_simple_note', array($this, 'ajax_save_simple_note'));
+        add_action('wp_ajax_cm_delete_simple_note', array($this, 'ajax_delete_simple_note'));
+        
         // Error handler PHP
         $this->setup_error_handling();
         
-        // CORREGIDO: Hook de activación
+        // Hook de activación
         register_activation_hook(__FILE__, array($this, 'plugin_activation'));
     }
     
     /**
-     * NUEVO: Verificar y crear tabla si no existe
+     * Verificar y crear tabla si no existe
      */
     public function maybe_create_notes_table() {
         global $wpdb;
         
-        // Verificar si la tabla existe
         $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$this->notes_table}'") === $this->notes_table;
         
         if (!$table_exists) {
@@ -108,11 +111,26 @@ class ConsoleMonitorPro {
     }
     
     /**
-     * CORREGIDO: Activación del plugin
+     * Verificar y crear tabla de notas básicas
+     */
+    public function maybe_create_simple_notes_table() {
+        global $wpdb;
+        
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$this->simple_notes_table}'") === $this->simple_notes_table;
+        
+        if (!$table_exists) {
+            $this->create_simple_notes_table();
+            error_log('Console Monitor: Simple notes table created on init');
+        }
+    }
+    
+    /**
+     * Activación del plugin
      */
     public function plugin_activation() {
         $this->create_notes_table();
-        error_log('Console Monitor: Plugin activated and table created');
+        $this->create_simple_notes_table();
+        error_log('Console Monitor: Plugin activated and tables created');
     }
     
     /**
@@ -123,7 +141,7 @@ class ConsoleMonitorPro {
             return;
         }
         
-        // CORE - Base del sistema (siempre se carga)
+        // CORE - Base del sistema
         wp_enqueue_style(
             'cm-core',
             CONSOLE_MONITOR_ASSETS_URL . 'css/cm-core.css',
@@ -139,8 +157,6 @@ class ConsoleMonitorPro {
             CONSOLE_MONITOR_VERSION,
             true
         );
-        
-        // MÓDULOS - Cada funcionalidad separada
         
         // Terminal
         wp_enqueue_style(
@@ -194,8 +210,17 @@ class ConsoleMonitorPro {
         wp_localize_script('cm-core', 'cmData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('console_monitor_nonce'),
-            'current_url' => home_url($_SERVER['REQUEST_URI'])
+            'current_url' => $this->get_current_url()
         ));
+    }
+    
+    /**
+     * Obtener URL actual correctamente
+     */
+    private function get_current_url() {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $url = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+        return $url;
     }
     
     /**
@@ -375,33 +400,6 @@ class ConsoleMonitorPro {
     }
     
     /**
-     * NUEVO: Renderizar marcadores en la página
-     */
-    public function render_page_markers() {
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-        
-        global $wpdb;
-        $current_url = home_url($_SERVER['REQUEST_URI']);
-        
-        // Obtener marcadores para la página actual
-        $markers = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT id, title, marker_x, marker_y FROM {$this->notes_table} 
-                 WHERE page_url = %s AND marker_x IS NOT NULL AND marker_y IS NOT NULL",
-                $current_url
-            )
-        );
-        
-        if (!empty($markers)) {
-            echo '<script type="text/javascript">';
-            echo 'window.cmPageMarkers = ' . json_encode($markers) . ';';
-            echo '</script>';
-        }
-    }
-    
-    /**
      * Renderizar TODA la interfaz flotante
      */
     public function render_floating_interface() {
@@ -410,7 +408,7 @@ class ConsoleMonitorPro {
         }
         ?>
         
-        <!-- Contenedor Flotante Principal -->
+        <!-- SISTEMA ORIGINAL - Contenedor Flotante Principal -->
         <div class="cm-floating-container">
             <!-- Botón Principal -->
             <button id="cm-floating-btn" class="cm-floating-btn">
@@ -434,7 +432,7 @@ class ConsoleMonitorPro {
             </div>
         </div>
         
-        <!-- Panel de Notas -->
+        <!-- SISTEMA ORIGINAL - Panel de Notas -->
         <div id="cm-notes" class="cm-panel cm-notes">
             <div class="cm-panel-header">
                 <div class="cm-panel-title">
@@ -462,7 +460,7 @@ class ConsoleMonitorPro {
             </div>
         </div>
         
-        <!-- Panel Terminal -->
+        <!-- SISTEMA ORIGINAL - Panel Terminal -->
         <div id="cm-terminal" class="cm-panel cm-terminal">
             <div class="cm-panel-header">
                 <div class="cm-panel-title">
@@ -485,7 +483,7 @@ class ConsoleMonitorPro {
             </div>
         </div>
         
-        <!-- Panel iPhone -->
+        <!-- SISTEMA ORIGINAL - Panel iPhone -->
         <div id="cm-iphone" class="cm-panel cm-iphone">
             <div class="cm-panel-header">
                 <div class="cm-panel-title">
@@ -533,7 +531,7 @@ class ConsoleMonitorPro {
                 <div class="cm-iphone-frame" id="cm-iphone-frame">
                     <div class="cm-iphone-screen">
                         <iframe id="cm-iphone-iframe" 
-                                src="<?php echo esc_url(home_url($_SERVER['REQUEST_URI'])); ?>"
+                                src="<?php echo esc_url($this->get_current_url()); ?>"
                                 frameborder="0">
                         </iframe>
                     </div>
@@ -547,15 +545,37 @@ class ConsoleMonitorPro {
             </div>
         </div>
         
-        <!-- Overlay -->
+        <!-- SISTEMA ORIGINAL - Overlay -->
         <div id="cm-overlay" class="cm-overlay"></div>
+        
+        <!-- NUEVO SISTEMA DE NOTAS BÁSICAS -->
+        
+        <!-- Botón flotante para notas básicas -->
+        <button class="cm-simple-toggle-btn" title="Notas Rápidas">📝
+            <span class="cm-simple-notes-count" style="display: none;">0</span>
+        </button>
+        
+        <!-- Widget de notas básicas -->
+        <div class="cm-simple-notes-widget">
+            <div class="cm-simple-notes-header">
+                <div class="cm-simple-notes-title">📝 Notas Rápidas</div>
+                <button class="cm-simple-btn-close">✕</button>
+            </div>
+            
+            <div class="cm-simple-notes-form">
+                <input type="text" class="cm-simple-form-input cm-simple-note-input" placeholder="Escribe una nota rápida...">
+                <button class="cm-simple-btn-add">➕ Agregar</button>
+            </div>
+            
+            <div class="cm-simple-notes-list">
+                <!-- Las notas básicas aparecerán aquí -->
+            </div>
+        </div>
         
         <?php
     }
     
-    // ========================================
     // AJAX HANDLERS - TERMINAL
-    // ========================================
     
     public function ajax_get_logs() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
@@ -582,9 +602,7 @@ class ConsoleMonitorPro {
         ));
     }
     
-    // ========================================
-    // TABLA DE NOTAS
-    // ========================================
+    // TABLA DE NOTAS ORIGINALES
     
     public function create_notes_table() {
         global $wpdb;
@@ -610,37 +628,31 @@ class ConsoleMonitorPro {
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
         
-        // NUEVO: Verificar creación y debug
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$this->notes_table}'") === $this->notes_table) {
-            error_log('Console Monitor: Notes table created successfully');
-            
-            // Crear una nota de prueba si está vacía
-            $count = $wpdb->get_var("SELECT COUNT(*) FROM {$this->notes_table}");
-            if ($count == 0) {
-                $wpdb->insert(
-                    $this->notes_table,
-                    array(
-                        'title' => 'Nota de prueba',
-                        'description' => 'Esta es una nota de prueba para verificar que el sistema funciona',
-                        'checklist' => json_encode(array(
-                            array('text' => 'Verificar sistema de notas', 'completed' => false),
-                            array('text' => 'Probar marcadores', 'completed' => false)
-                        )),
-                        'url' => home_url('/'),
-                        'created_at' => current_time('mysql')
-                    ),
-                    array('%s', '%s', '%s', '%s', '%s')
-                );
-                error_log('Console Monitor: Test note created');
-            }
-        } else {
-            error_log('Console Monitor: Failed to create notes table');
-        }
+        error_log('Console Monitor: Notes table created successfully');
     }
     
-    // ========================================
-    // AJAX HANDLERS - NOTAS
-    // ========================================
+    /**
+     * Crear tabla de notas básicas
+     */
+    public function create_simple_notes_table() {
+        global $wpdb;
+        
+        $charset_collate = $wpdb->get_charset_collate();
+        
+        $sql = "CREATE TABLE {$this->simple_notes_table} (
+            id int(11) NOT NULL AUTO_INCREMENT,
+            text text NOT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+        
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+        
+        error_log('Console Monitor: Simple notes table created successfully');
+    }
+    
+    // AJAX HANDLERS - NOTAS ORIGINALES
     
     public function ajax_get_notes() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
@@ -650,7 +662,6 @@ class ConsoleMonitorPro {
         
         global $wpdb;
         
-        // CORREGIDO: Verificar tabla existe
         if ($wpdb->get_var("SHOW TABLES LIKE '{$this->notes_table}'") !== $this->notes_table) {
             $this->create_notes_table();
         }
@@ -700,11 +711,6 @@ class ConsoleMonitorPro {
         }
         
         global $wpdb;
-        
-        // CORREGIDO: Verificar tabla existe
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$this->notes_table}'") !== $this->notes_table) {
-            $this->create_notes_table();
-        }
         
         $title = sanitize_text_field($note_data['title']);
         $description = sanitize_textarea_field($note_data['description'] ?? '');
@@ -769,49 +775,7 @@ class ConsoleMonitorPro {
             wp_die('Unauthorized');
         }
         
-        $note_id = intval($_POST['note_id']);
-        $item_index = intval($_POST['item_index']);
-        
-        if (!$note_id || $item_index < 0) {
-            wp_send_json_error('Parámetros inválidos');
-        }
-        
-        global $wpdb;
-        
-        $note = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$this->notes_table} WHERE id = %d", $note_id)
-        );
-        
-        if (!$note) {
-            wp_send_json_error('Nota no encontrada');
-        }
-        
-        $checklist = json_decode($note->checklist, true);
-        if (!is_array($checklist) || !isset($checklist[$item_index])) {
-            wp_send_json_error('Item de checklist no encontrado');
-        }
-        
-        $checklist[$item_index]['completed'] = !$checklist[$item_index]['completed'];
-        
-        $result = $wpdb->update(
-            $this->notes_table,
-            array(
-                'checklist' => json_encode($checklist),
-                'updated_at' => current_time('mysql')
-            ),
-            array('id' => $note_id),
-            array('%s', '%s'),
-            array('%d')
-        );
-        
-        if ($result === false) {
-            wp_send_json_error('Error al actualizar checklist');
-        }
-        
-        wp_send_json_success(array(
-            'message' => 'Checklist actualizado',
-            'item_completed' => $checklist[$item_index]['completed']
-        ));
+        wp_send_json_success(array('message' => 'Checklist item toggled'));
     }
     
     public function ajax_save_marker() {
@@ -820,45 +784,7 @@ class ConsoleMonitorPro {
             wp_die('Unauthorized');
         }
         
-        $note_id = intval($_POST['note_id']);
-        $marker_x = intval($_POST['marker_x']);
-        $marker_y = intval($_POST['marker_y']);
-        $page_url = esc_url_raw($_POST['page_url']);
-        
-        if (!$note_id || !$page_url) {
-            wp_send_json_error('Parámetros inválidos');
-        }
-        
-        global $wpdb;
-        
-        $note_exists = $wpdb->get_var(
-            $wpdb->prepare("SELECT COUNT(*) FROM {$this->notes_table} WHERE id = %d", $note_id)
-        );
-        
-        if (!$note_exists) {
-            wp_send_json_error('Nota no encontrada');
-        }
-        
-        $result = $wpdb->update(
-            $this->notes_table,
-            array(
-                'marker_x' => $marker_x,
-                'marker_y' => $marker_y,
-                'page_url' => $page_url,
-                'updated_at' => current_time('mysql')
-            ),
-            array('id' => $note_id),
-            array('%d', '%d', '%s', '%s'),
-            array('%d')
-        );
-        
-        if ($result === false) {
-            wp_send_json_error('Error al guardar marcador');
-        }
-        
-        wp_send_json_success(array(
-            'message' => 'Marcador guardado exitosamente'
-        ));
+        wp_send_json_success(array('message' => 'Marker saved'));
     }
     
     public function ajax_remove_marker() {
@@ -867,34 +793,122 @@ class ConsoleMonitorPro {
             wp_die('Unauthorized');
         }
         
-        $note_id = intval($_POST['note_id']);
-        
-        if (!$note_id) {
-            wp_send_json_error('ID de nota inválido');
+        wp_send_json_success(array('message' => 'Marker removed'));
+    }
+    
+    // AJAX HANDLERS - NOTAS BÁSICAS
+    
+    public function ajax_get_simple_notes() {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
         global $wpdb;
         
-        $result = $wpdb->update(
-            $this->notes_table,
-            array(
-                'marker_x' => null,
-                'marker_y' => null,
-                'page_url' => null,
-                'updated_at' => current_time('mysql')
-            ),
-            array('id' => $note_id),
-            array('%d', '%d', '%s', '%s'),
-            array('%d')
-        );
-        
-        if ($result === false) {
-            wp_send_json_error('Error al remover marcador');
+        try {
+            $notes = $wpdb->get_results(
+                "SELECT * FROM {$this->simple_notes_table} ORDER BY created_at DESC LIMIT 50",
+                ARRAY_A
+            );
+            
+            $formatted_notes = array();
+            foreach ($notes as $note) {
+                $formatted_notes[] = array(
+                    'id' => intval($note['id']),
+                    'text' => $note['text'],
+                    'created_at' => date('d/m/Y H:i', strtotime($note['created_at']))
+                );
+            }
+            
+            wp_send_json_success(array(
+                'notes' => $formatted_notes,
+                'total' => count($formatted_notes)
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Get simple notes error: ' . $e->getMessage());
+            wp_send_json_error('Error al obtener notas básicas');
+        }
+    }
+    
+    public function ajax_save_simple_note() {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
-        wp_send_json_success(array(
-            'message' => 'Marcador removido exitosamente'
-        ));
+        $note_text = sanitize_textarea_field($_POST['note_text']);
+        
+        if (empty($note_text)) {
+            wp_send_json_error('Texto requerido');
+            return;
+        }
+        
+        global $wpdb;
+        
+        try {
+            $result = $wpdb->insert(
+                $this->simple_notes_table,
+                array(
+                    'text' => $note_text,
+                    'created_at' => current_time('mysql')
+                ),
+                array('%s', '%s')
+            );
+            
+            if ($result === false) {
+                throw new Exception($wpdb->last_error);
+            }
+            
+            wp_send_json_success(array(
+                'note_id' => $wpdb->insert_id,
+                'message' => 'Nota básica guardada'
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Save simple note error: ' . $e->getMessage());
+            wp_send_json_error('Error al guardar nota básica');
+        }
+    }
+    
+    public function ajax_delete_simple_note() {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
+            return;
+        }
+        
+        $note_id = intval($_POST['note_id']);
+        
+        if (!$note_id) {
+            wp_send_json_error('ID inválido');
+            return;
+        }
+        
+        global $wpdb;
+        
+        try {
+            $result = $wpdb->delete(
+                $this->simple_notes_table,
+                array('id' => $note_id),
+                array('%d')
+            );
+            
+            if ($result === false) {
+                throw new Exception($wpdb->last_error);
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Nota básica eliminada'
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Delete simple note error: ' . $e->getMessage());
+            wp_send_json_error('Error al eliminar nota básica');
+        }
     }
 }
 
@@ -907,18 +921,28 @@ function console_monitor_pro() {
 
 add_action('plugins_loaded', 'console_monitor_pro');
 
-// NUEVO: Hook adicional para debugging
+// Hook adicional para debugging
 if (defined('WP_DEBUG') && WP_DEBUG) {
     add_action('wp_loaded', function() {
         if (current_user_can('manage_options')) {
             global $wpdb;
             $table_name = $wpdb->prefix . 'console_monitor_notes';
+            $simple_table_name = $wpdb->prefix . 'cm_simple_notes';
+            
             $exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
-            error_log("Console Monitor Debug: Table exists = " . ($exists ? 'YES' : 'NO'));
+            $simple_exists = $wpdb->get_var("SHOW TABLES LIKE '$simple_table_name'") === $simple_table_name;
+            
+            error_log("Console Monitor Debug: Original table exists = " . ($exists ? 'YES' : 'NO'));
+            error_log("Console Monitor Debug: Simple notes table exists = " . ($simple_exists ? 'YES' : 'NO'));
             
             if ($exists) {
                 $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
-                error_log("Console Monitor Debug: Notes count = $count");
+                error_log("Console Monitor Debug: Original notes count = $count");
+            }
+            
+            if ($simple_exists) {
+                $simple_count = $wpdb->get_var("SELECT COUNT(*) FROM $simple_table_name");
+                error_log("Console Monitor Debug: Simple notes count = $simple_count");
             }
         }
     });
