@@ -21,7 +21,7 @@ define('CONSOLE_MONITOR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CONSOLE_MONITOR_ASSETS_URL', CONSOLE_MONITOR_PLUGIN_URL . 'assets/');
 
 /**
- * Clase principal del plugin - TODO EN UNO + SISTEMA BÁSICO DE NOTAS
+ * Clase principal del plugin - TODO EN UNO + SISTEMAS COMPLETOS DE NOTAS
  */
 class ConsoleMonitorPro {
     
@@ -76,15 +76,16 @@ class ConsoleMonitorPro {
         add_action('wp_ajax_cm_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_cm_clear_logs', array($this, 'ajax_clear_logs'));
         
-        // AJAX handlers - NOTAS ORIGINALES
+        // AJAX handlers - NOTAS ORIGINALES (AVANZADAS)
         add_action('wp_ajax_cm_get_notes', array($this, 'ajax_get_notes'));
         add_action('wp_ajax_cm_save_note', array($this, 'ajax_save_note'));
         add_action('wp_ajax_cm_delete_note', array($this, 'ajax_delete_note'));
+        add_action('wp_ajax_cm_update_note', array($this, 'ajax_update_note'));
         add_action('wp_ajax_cm_toggle_checklist_item', array($this, 'ajax_toggle_checklist_item'));
         add_action('wp_ajax_cm_save_marker', array($this, 'ajax_save_marker'));
         add_action('wp_ajax_cm_remove_marker', array($this, 'ajax_remove_marker'));
         
-        // AJAX handlers - NOTAS BÁSICAS
+        // AJAX handlers - NOTAS BÁSICAS (RÁPIDAS)
         add_action('wp_ajax_cm_get_simple_notes', array($this, 'ajax_get_simple_notes'));
         add_action('wp_ajax_cm_save_simple_note', array($this, 'ajax_save_simple_note'));
         add_action('wp_ajax_cm_delete_simple_note', array($this, 'ajax_delete_simple_note'));
@@ -94,6 +95,11 @@ class ConsoleMonitorPro {
         
         // Hook de activación
         register_activation_hook(__FILE__, array($this, 'plugin_activation'));
+        
+        // Debug info
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Console Monitor Pro: Plugin initialized for user with manage_options capability');
+        }
     }
     
     /**
@@ -206,12 +212,24 @@ class ConsoleMonitorPro {
             true
         );
         
-        // Localizar datos para todos los módulos
+        // Localizar datos para todos los módulos - CON DEBUG
         wp_localize_script('cm-core', 'cmData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('console_monitor_nonce'),
-            'current_url' => $this->get_current_url()
+            'current_url' => $this->get_current_url(),
+            'debug' => defined('WP_DEBUG') && WP_DEBUG,
+            'user_can_manage' => current_user_can('manage_options')
         ));
+        
+        // Debug JavaScript inline
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            wp_add_inline_script('cm-core', '
+                console.log("Console Monitor: Assets loaded");
+                console.log("cmData:", typeof cmData !== "undefined" ? cmData : "NOT DEFINED");
+                console.log("jQuery version:", jQuery.fn.jquery);
+                console.log("User can manage options:", ' . (current_user_can('manage_options') ? 'true' : 'false') . ');
+            ');
+        }
     }
     
     /**
@@ -354,6 +372,9 @@ class ConsoleMonitorPro {
                 };
                 window.CMPro.logs.push(entry);
             });
+            
+            // Debug inicial
+            console.log('Console Monitor: Interceptor initialized');
         })();
         </script>
         <?php
@@ -420,7 +441,7 @@ class ConsoleMonitorPro {
             
             <!-- Botones Expandidos -->
             <div class="cm-expanded-buttons">
-                <button class="cm-option-btn notes" title="Notas y Marcadores" data-panel="notes">
+                <button class="cm-option-btn notes" title="Notas Avanzadas y Marcadores" data-panel="notes">
                     📝
                 </button>
                 <button class="cm-option-btn terminal" title="Terminal de Console" data-panel="terminal">
@@ -432,18 +453,21 @@ class ConsoleMonitorPro {
             </div>
         </div>
         
-        <!-- SISTEMA ORIGINAL - Panel de Notas -->
+        <!-- SISTEMA ORIGINAL - Panel de Notas AVANZADAS -->
         <div id="cm-notes" class="cm-panel cm-notes">
             <div class="cm-panel-header">
                 <div class="cm-panel-title">
                     <span class="cm-title-icon">📝</span>
-                    <span>Notas y Marcadores</span>
+                    <span>Notas Avanzadas</span>
                 </div>
                 <div class="cm-panel-controls">
                     <div class="cm-notes-header-actions">
-                        <button class="cm-btn-add-note" title="Nueva Nota">
+                        <button class="cm-btn-add-note" title="Nueva Nota Avanzada">
                             <span>➕</span>
                             <span class="cm-btn-text">Nueva</span>
+                        </button>
+                        <button class="cm-btn-refresh-notes" title="Actualizar">
+                            <span>🔄</span>
                         </button>
                     </div>
                     <button class="cm-btn-close" title="Cerrar">✕</button>
@@ -451,12 +475,55 @@ class ConsoleMonitorPro {
             </div>
             <div class="cm-panel-body">
                 <div class="cm-notes-container" id="cm-notes-container">
-                    <!-- Las notas se cargarán aquí -->
+                    <!-- Las notas avanzadas se cargarán aquí -->
                 </div>
             </div>
             <div class="cm-panel-footer">
                 <span class="cm-notes-count">0 notas</span>
-                <span style="font-size: 10px; opacity: 0.7;">Ctrl+Shift+N</span>
+                <span style="font-size: 10px; opacity: 0.7;">Ctrl+Shift+N • Notas con checklist y marcadores</span>
+            </div>
+        </div>
+        
+        <!-- Modal para Nueva/Editar Nota Avanzada -->
+        <div id="cm-note-modal" class="cm-note-modal" style="display: none;">
+            <div class="cm-note-modal-content">
+                <div class="cm-note-modal-header">
+                    <h3>📝 <span id="cm-note-modal-title">Nueva Nota</span></h3>
+                    <button class="cm-note-modal-close">✕</button>
+                </div>
+                <div class="cm-note-modal-body">
+                    <form id="cm-note-form">
+                        <div class="cm-form-group">
+                            <label for="cm-note-title">Título:</label>
+                            <input type="text" id="cm-note-title" name="title" required placeholder="Título de la nota">
+                        </div>
+                        
+                        <div class="cm-form-group">
+                            <label for="cm-note-description">Descripción:</label>
+                            <textarea id="cm-note-description" name="description" rows="4" placeholder="Descripción detallada..."></textarea>
+                        </div>
+                        
+                        <div class="cm-form-group">
+                            <label for="cm-note-url">URL relacionada:</label>
+                            <input type="url" id="cm-note-url" name="url" placeholder="https://ejemplo.com">
+                        </div>
+                        
+                        <div class="cm-form-group">
+                            <label>Lista de tareas:</label>
+                            <div id="cm-checklist-container">
+                                <div class="cm-checklist-item">
+                                    <input type="text" placeholder="Nueva tarea..." class="cm-checklist-input">
+                                    <button type="button" class="cm-checklist-add">➕</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="cm-form-actions">
+                            <button type="button" class="cm-btn-cancel">Cancelar</button>
+                            <button type="submit" class="cm-btn-save">💾 Guardar</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
         
@@ -548,7 +615,7 @@ class ConsoleMonitorPro {
         <!-- SISTEMA ORIGINAL - Overlay -->
         <div id="cm-overlay" class="cm-overlay"></div>
         
-        <!-- NUEVO SISTEMA DE NOTAS BÁSICAS -->
+        <!-- NUEVO SISTEMA DE NOTAS BÁSICAS (RÁPIDAS) -->
         
         <!-- Botón flotante para notas básicas -->
         <button class="cm-simple-toggle-btn" title="Notas Rápidas">📝
@@ -556,7 +623,7 @@ class ConsoleMonitorPro {
         </button>
         
         <!-- Widget de notas básicas -->
-        <div class="cm-simple-notes-widget">
+        <div class="cm-simple-notes-widget" style="display: none;">
             <div class="cm-simple-notes-header">
                 <div class="cm-simple-notes-title">📝 Notas Rápidas</div>
                 <button class="cm-simple-btn-close">✕</button>
@@ -569,8 +636,284 @@ class ConsoleMonitorPro {
             
             <div class="cm-simple-notes-list">
                 <!-- Las notas básicas aparecerán aquí -->
+                <div class="cm-simple-notes-empty">
+                    <div style="font-size: 32px; margin-bottom: 10px;">📝</div>
+                    <div style="font-weight: bold; margin-bottom: 5px;">No hay notas aún</div>
+                    <div style="font-size: 11px; opacity: 0.8;">Escribe tu primera nota arriba</div>
+                </div>
             </div>
         </div>
+        
+        <style>
+        /* Estilos para el modal de notas avanzadas */
+        .cm-note-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .cm-note-modal-content {
+            background: #2c3e50;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        .cm-note-modal-header {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            padding: 16px 20px;
+            border-radius: 12px 12px 0 0;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cm-note-modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .cm-note-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .cm-note-modal-body {
+            padding: 20px;
+        }
+        
+        .cm-form-group {
+            margin-bottom: 16px;
+        }
+        
+        .cm-form-group label {
+            display: block;
+            color: #ecf0f1;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .cm-form-group input,
+        .cm-form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #34495e;
+            background: #1a1a1a;
+            color: #ecf0f1;
+            border-radius: 6px;
+            font-size: 13px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        
+        .cm-form-group input:focus,
+        .cm-form-group textarea:focus {
+            outline: none;
+            border-color: #27ae60;
+            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+        }
+        
+        .cm-checklist-container {
+            border: 1px solid #34495e;
+            border-radius: 6px;
+            padding: 10px;
+            background: #1a1a1a;
+        }
+        
+        .cm-checklist-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .cm-checklist-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .cm-checklist-input {
+            flex: 1;
+            padding: 6px 8px !important;
+            margin: 0 !important;
+        }
+        
+        .cm-checklist-add,
+        .cm-checklist-remove {
+            background: #27ae60;
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        
+        .cm-checklist-remove {
+            background: #e74c3c;
+        }
+        
+        .cm-form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #34495e;
+        }
+        
+        .cm-btn-cancel,
+        .cm-btn-save {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .cm-btn-cancel {
+            background: #7f8c8d;
+            color: white;
+        }
+        
+        .cm-btn-cancel:hover {
+            background: #95a5a6;
+        }
+        
+        .cm-btn-save {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+        }
+        
+        .cm-btn-save:hover {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            transform: translateY(-1px);
+        }
+        
+        /* Estilos para lista de notas avanzadas */
+        .cm-advanced-note {
+            background: #34495e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #27ae60;
+            transition: all 0.3s ease;
+        }
+        
+        .cm-advanced-note:hover {
+            background: #3d566e;
+            transform: translateX(4px);
+        }
+        
+        .cm-advanced-note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .cm-advanced-note-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ecf0f1;
+            margin: 0;
+        }
+        
+        .cm-advanced-note-actions {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .cm-advanced-note-edit,
+        .cm-advanced-note-delete {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #bdc3c7;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+        }
+        
+        .cm-advanced-note-edit:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .cm-advanced-note-delete:hover {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .cm-advanced-note-description {
+            color: #bdc3c7;
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        
+        .cm-advanced-note-url {
+            color: #3498db;
+            font-size: 11px;
+            text-decoration: none;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .cm-advanced-note-url:hover {
+            text-decoration: underline;
+        }
+        
+        .cm-advanced-note-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0 0;
+        }
+        
+        .cm-advanced-note-checklist li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 0;
+            font-size: 11px;
+            color: #95a5a6;
+        }
+        
+        .cm-advanced-note-checklist input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .cm-advanced-note-meta {
+            font-size: 10px;
+            color: #7f8c8d;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(189, 195, 199, 0.1);
+        }
+        </style>
         
         <?php
     }
@@ -652,151 +995,261 @@ class ConsoleMonitorPro {
         error_log('Console Monitor: Simple notes table created successfully');
     }
     
-    // AJAX HANDLERS - NOTAS ORIGINALES
+    // AJAX HANDLERS - NOTAS AVANZADAS (SISTEMA ORIGINAL)
     
     public function ajax_get_notes() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
             !current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
         global $wpdb;
         
-        if ($wpdb->get_var("SHOW TABLES LIKE '{$this->notes_table}'") !== $this->notes_table) {
-            $this->create_notes_table();
-        }
-        
-        $notes = $wpdb->get_results(
-            "SELECT * FROM {$this->notes_table} ORDER BY created_at DESC LIMIT 50"
-        );
-        
-        $processed_notes = array();
-        foreach ($notes as $note) {
-            $note_data = array(
-                'id' => $note->id,
-                'title' => $note->title,
-                'description' => $note->description,
-                'checklist' => $note->checklist ? json_decode($note->checklist, true) : array(),
-                'url' => $note->url,
-                'marker_x' => $note->marker_x,
-                'marker_y' => $note->marker_y,
-                'page_url' => $note->page_url,
-                'created_at' => date('d/m/Y H:i', strtotime($note->created_at)),
-                'updated_at' => $note->updated_at
-            );
-            
-            if (!is_array($note_data['checklist'])) {
-                $note_data['checklist'] = array();
+        try {
+            // Verificar que la tabla existe
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$this->notes_table}'") !== $this->notes_table) {
+                $this->create_notes_table();
             }
             
-            $processed_notes[] = $note_data;
+            $notes = $wpdb->get_results(
+                "SELECT * FROM {$this->notes_table} ORDER BY updated_at DESC LIMIT 50"
+            );
+            
+            $processed_notes = array();
+            foreach ($notes as $note) {
+                $checklist_data = array();
+                if (!empty($note->checklist)) {
+                    $decoded = json_decode($note->checklist, true);
+                    if (is_array($decoded)) {
+                        $checklist_data = $decoded;
+                    }
+                }
+                
+                $note_data = array(
+                    'id' => intval($note->id),
+                    'title' => $note->title,
+                    'description' => $note->description,
+                    'checklist' => $checklist_data,
+                    'url' => $note->url,
+                    'marker_x' => $note->marker_x,
+                    'marker_y' => $note->marker_y,
+                    'page_url' => $note->page_url,
+                    'created_at' => date('d/m/Y H:i', strtotime($note->created_at)),
+                    'updated_at' => date('d/m/Y H:i', strtotime($note->updated_at))
+                );
+                
+                $processed_notes[] = $note_data;
+            }
+            
+            wp_send_json_success(array(
+                'notes' => $processed_notes,
+                'total' => count($processed_notes)
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Get advanced notes error: ' . $e->getMessage());
+            wp_send_json_error('Error al obtener notas avanzadas');
         }
-        
-        wp_send_json_success(array(
-            'notes' => $processed_notes,
-            'total' => count($processed_notes)
-        ));
     }
     
     public function ajax_save_note() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
             !current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
-        $note_data = json_decode(stripslashes($_POST['note_data']), true);
+        // Obtener datos del POST
+        $title = sanitize_text_field($_POST['title'] ?? '');
+        $description = sanitize_textarea_field($_POST['description'] ?? '');
+        $url = esc_url_raw($_POST['url'] ?? '');
+        $checklist = $_POST['checklist'] ?? '';
         
-        if (!$note_data || empty($note_data['title'])) {
-            wp_send_json_error('Datos de nota inválidos');
+        // Validar datos requeridos
+        if (empty($title)) {
+            wp_send_json_error('El título es requerido');
+            return;
+        }
+        
+        // Procesar checklist
+        $checklist_data = array();
+        if (!empty($checklist)) {
+            if (is_string($checklist)) {
+                $decoded = json_decode(stripslashes($checklist), true);
+                if (is_array($decoded)) {
+                    $checklist_data = $decoded;
+                }
+            } elseif (is_array($checklist)) {
+                $checklist_data = $checklist;
+            }
         }
         
         global $wpdb;
         
-        $title = sanitize_text_field($note_data['title']);
-        $description = sanitize_textarea_field($note_data['description'] ?? '');
-        $checklist = json_encode($note_data['checklist'] ?? array());
-        $url = esc_url_raw($note_data['url'] ?? '');
-        
-        $result = $wpdb->insert(
-            $this->notes_table,
-            array(
-                'title' => $title,
-                'description' => $description,
-                'checklist' => $checklist,
-                'url' => $url,
-                'created_at' => current_time('mysql')
-            ),
-            array('%s', '%s', '%s', '%s', '%s')
-        );
-        
-        if ($result === false) {
-            error_log('Console Monitor: Error inserting note - ' . $wpdb->last_error);
-            wp_send_json_error('Error al guardar la nota: ' . $wpdb->last_error);
+        try {
+            $result = $wpdb->insert(
+                $this->notes_table,
+                array(
+                    'title' => $title,
+                    'description' => $description,
+                    'checklist' => json_encode($checklist_data),
+                    'url' => $url,
+                    'page_url' => $this->get_current_url(),
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
+                ),
+                array('%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            );
+            
+            if ($result === false) {
+                throw new Exception('Error en la base de datos: ' . $wpdb->last_error);
+            }
+            
+            wp_send_json_success(array(
+                'note_id' => $wpdb->insert_id,
+                'message' => 'Nota avanzada guardada exitosamente'
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Save advanced note error: ' . $e->getMessage());
+            wp_send_json_error('Error al guardar nota avanzada: ' . $e->getMessage());
+        }
+    }
+    
+    public function ajax_update_note() {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
-        wp_send_json_success(array(
-            'note_id' => $wpdb->insert_id,
-            'message' => 'Nota guardada exitosamente'
-        ));
+        $note_id = intval($_POST['note_id'] ?? 0);
+        $title = sanitize_text_field($_POST['title'] ?? '');
+        $description = sanitize_textarea_field($_POST['description'] ?? '');
+        $url = esc_url_raw($_POST['url'] ?? '');
+        $checklist = $_POST['checklist'] ?? '';
+        
+        if (!$note_id || empty($title)) {
+            wp_send_json_error('ID de nota y título son requeridos');
+            return;
+        }
+        
+        // Procesar checklist
+        $checklist_data = array();
+        if (!empty($checklist)) {
+            if (is_string($checklist)) {
+                $decoded = json_decode(stripslashes($checklist), true);
+                if (is_array($decoded)) {
+                    $checklist_data = $decoded;
+                }
+            } elseif (is_array($checklist)) {
+                $checklist_data = $checklist;
+            }
+        }
+        
+        global $wpdb;
+        
+        try {
+            $result = $wpdb->update(
+                $this->notes_table,
+                array(
+                    'title' => $title,
+                    'description' => $description,
+                    'checklist' => json_encode($checklist_data),
+                    'url' => $url,
+                    'updated_at' => current_time('mysql')
+                ),
+                array('id' => $note_id),
+                array('%s', '%s', '%s', '%s', '%s'),
+                array('%d')
+            );
+            
+            if ($result === false) {
+                throw new Exception('Error en la base de datos: ' . $wpdb->last_error);
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Nota avanzada actualizada exitosamente'
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Update advanced note error: ' . $e->getMessage());
+            wp_send_json_error('Error al actualizar nota avanzada: ' . $e->getMessage());
+        }
     }
     
     public function ajax_delete_note() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
             !current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
-        $note_id = intval($_POST['note_id']);
+        $note_id = intval($_POST['note_id'] ?? 0);
         
         if (!$note_id) {
             wp_send_json_error('ID de nota inválido');
+            return;
         }
         
         global $wpdb;
         
-        $result = $wpdb->delete(
-            $this->notes_table,
-            array('id' => $note_id),
-            array('%d')
-        );
-        
-        if ($result === false) {
-            wp_send_json_error('Error al eliminar la nota');
+        try {
+            $result = $wpdb->delete(
+                $this->notes_table,
+                array('id' => $note_id),
+                array('%d')
+            );
+            
+            if ($result === false) {
+                throw new Exception('Error en la base de datos: ' . $wpdb->last_error);
+            }
+            
+            wp_send_json_success(array(
+                'message' => 'Nota avanzada eliminada exitosamente'
+            ));
+            
+        } catch (Exception $e) {
+            error_log('Delete advanced note error: ' . $e->getMessage());
+            wp_send_json_error('Error al eliminar nota avanzada: ' . $e->getMessage());
         }
-        
-        wp_send_json_success(array(
-            'message' => 'Nota eliminada exitosamente'
-        ));
     }
     
     public function ajax_toggle_checklist_item() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
             !current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
+        // Esta funcionalidad se implementará en el JavaScript del frontend
         wp_send_json_success(array('message' => 'Checklist item toggled'));
     }
     
     public function ajax_save_marker() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
             !current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
+        // Esta funcionalidad se implementará más adelante
         wp_send_json_success(array('message' => 'Marker saved'));
     }
     
     public function ajax_remove_marker() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
             !current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('Sin permisos');
+            return;
         }
         
+        // Esta funcionalidad se implementará más adelante
         wp_send_json_success(array('message' => 'Marker removed'));
     }
     
-    // AJAX HANDLERS - NOTAS BÁSICAS
+    // AJAX HANDLERS - NOTAS BÁSICAS (SISTEMA RÁPIDO)
     
     public function ajax_get_simple_notes() {
         if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
@@ -808,6 +1261,13 @@ class ConsoleMonitorPro {
         global $wpdb;
         
         try {
+            // Verificar que la tabla existe
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$this->simple_notes_table}'") !== $this->simple_notes_table) {
+                $this->create_simple_notes_table();
+                wp_send_json_success(array('notes' => array(), 'total' => 0));
+                return;
+            }
+            
             $notes = $wpdb->get_results(
                 "SELECT * FROM {$this->simple_notes_table} ORDER BY created_at DESC LIMIT 50",
                 ARRAY_A
@@ -829,7 +1289,7 @@ class ConsoleMonitorPro {
             
         } catch (Exception $e) {
             error_log('Get simple notes error: ' . $e->getMessage());
-            wp_send_json_error('Error al obtener notas básicas');
+            wp_send_json_error('Error al obtener notas básicas: ' . $e->getMessage());
         }
     }
     
@@ -840,16 +1300,21 @@ class ConsoleMonitorPro {
             return;
         }
         
-        $note_text = sanitize_textarea_field($_POST['note_text']);
+        $note_text = sanitize_textarea_field($_POST['note_text'] ?? '');
         
         if (empty($note_text)) {
-            wp_send_json_error('Texto requerido');
+            wp_send_json_error('El texto de la nota es requerido');
             return;
         }
         
         global $wpdb;
         
         try {
+            // Verificar que la tabla existe
+            if ($wpdb->get_var("SHOW TABLES LIKE '{$this->simple_notes_table}'") !== $this->simple_notes_table) {
+                $this->create_simple_notes_table();
+            }
+            
             $result = $wpdb->insert(
                 $this->simple_notes_table,
                 array(
@@ -860,17 +1325,17 @@ class ConsoleMonitorPro {
             );
             
             if ($result === false) {
-                throw new Exception($wpdb->last_error);
+                throw new Exception('Error en la base de datos: ' . $wpdb->last_error);
             }
             
             wp_send_json_success(array(
                 'note_id' => $wpdb->insert_id,
-                'message' => 'Nota básica guardada'
+                'message' => 'Nota básica guardada exitosamente'
             ));
             
         } catch (Exception $e) {
             error_log('Save simple note error: ' . $e->getMessage());
-            wp_send_json_error('Error al guardar nota básica');
+            wp_send_json_error('Error al guardar nota básica: ' . $e->getMessage());
         }
     }
     
@@ -881,10 +1346,10 @@ class ConsoleMonitorPro {
             return;
         }
         
-        $note_id = intval($_POST['note_id']);
+        $note_id = intval($_POST['note_id'] ?? 0);
         
         if (!$note_id) {
-            wp_send_json_error('ID inválido');
+            wp_send_json_error('ID de nota inválido');
             return;
         }
         
@@ -898,16 +1363,16 @@ class ConsoleMonitorPro {
             );
             
             if ($result === false) {
-                throw new Exception($wpdb->last_error);
+                throw new Exception('Error en la base de datos: ' . $wpdb->last_error);
             }
             
             wp_send_json_success(array(
-                'message' => 'Nota básica eliminada'
+                'message' => 'Nota básica eliminada exitosamente'
             ));
             
         } catch (Exception $e) {
             error_log('Delete simple note error: ' . $e->getMessage());
-            wp_send_json_error('Error al eliminar nota básica');
+            wp_send_json_error('Error al eliminar nota básica: ' . $e->getMessage());
         }
     }
 }
@@ -921,7 +1386,7 @@ function console_monitor_pro() {
 
 add_action('plugins_loaded', 'console_monitor_pro');
 
-// Hook adicional para debugging
+// Hook adicional para debugging mejorado
 if (defined('WP_DEBUG') && WP_DEBUG) {
     add_action('wp_loaded', function() {
         if (current_user_can('manage_options')) {
@@ -932,18 +1397,22 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
             $exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
             $simple_exists = $wpdb->get_var("SHOW TABLES LIKE '$simple_table_name'") === $simple_table_name;
             
-            error_log("Console Monitor Debug: Original table exists = " . ($exists ? 'YES' : 'NO'));
+            error_log("Console Monitor Debug: Advanced notes table exists = " . ($exists ? 'YES' : 'NO'));
             error_log("Console Monitor Debug: Simple notes table exists = " . ($simple_exists ? 'YES' : 'NO'));
             
             if ($exists) {
                 $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
-                error_log("Console Monitor Debug: Original notes count = $count");
+                error_log("Console Monitor Debug: Advanced notes count = $count");
             }
             
             if ($simple_exists) {
                 $simple_count = $wpdb->get_var("SELECT COUNT(*) FROM $simple_table_name");
                 error_log("Console Monitor Debug: Simple notes count = $simple_count");
             }
+            
+            // Verificar permisos
+            error_log("Console Monitor Debug: Current user can manage options = " . (current_user_can('manage_options') ? 'YES' : 'NO'));
+            error_log("Console Monitor Debug: AJAX URL = " . admin_url('admin-ajax.php'));
         }
     });
 }
