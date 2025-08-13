@@ -1,5 +1,5 @@
 /**
- * Console Monitor Pro - JavaScript CORE
+ * Console Monitor Pro - JavaScript CORE - VERSIÓN CORREGIDA
  * assets/js/cm-core.js
  * Sistema base: botón flotante, drag & drop, navegación entre paneles
  */
@@ -7,21 +7,33 @@
 (function ($) {
     'use strict';
 
-    // Sistema base global
+    // Sistema base global - CON ESTADO DE MARCADORES INICIALIZADO
     window.ConsoleMonitor = {
 
-        // Estado base
+        // Estado base - FIX: Incluir estado de marcadores
         state: {
             isExpanded: false,
             activePanel: null, // 'terminal' | 'iphone' | 'notes' | null
-            isTransforming: false
+            isTransforming: false,
+            // NUEVO: Estados de marcadores inicializados aquí
+            currentMarkers: [],
+            markersVisible: true,
+            isMarkerSelectionMode: false,
+            selectedMarker: null,
+            currentNoteType: null,
+            // Estados adicionales para notas
+            advancedNotes: [],
+            currentEditingNote: null,
+            isEditingNote: false
         },
 
         // Elementos DOM base
         elements: {
             $container: null,
             $btn: null,
-            $overlay: null
+            $overlay: null,
+            // NUEVO: Elementos para marcadores
+            $markersContainer: null
         },
 
         // Estado del drag
@@ -42,15 +54,42 @@
             this.bindEvents();
             this.setupDragging();
             this.restoreButtonPosition();
+            // NUEVO: Inicializar contenedor de marcadores
+            this.initializeMarkersContainer();
 
-            console.log('✅ Console Monitor Core initialized');
+            console.log('✅ Console Monitor Core initialized with markers support');
         },
 
-        // Cachear elementos DOM
+        // Cachear elementos DOM - FIX: Incluir marcadores
         cacheElements: function () {
             this.elements.$container = $('.cm-floating-container');
             this.elements.$btn = $('#cm-floating-btn');
             this.elements.$overlay = $('#cm-overlay');
+
+            // NUEVO: Cachear contenedor de marcadores
+            this.elements.$markersContainer = $('#cm-markers-container');
+
+            // FIX: Crear contenedor si no existe
+            if (this.elements.$markersContainer.length === 0) {
+                $('body').prepend('<div id="cm-markers-container" class="cm-markers-container"></div>');
+                this.elements.$markersContainer = $('#cm-markers-container');
+            }
+        },
+
+        // NUEVO: Inicializar contenedor de marcadores
+        initializeMarkersContainer: function () {
+            if ($('#cm-markers-container').length === 0) {
+                console.warn('🔧 Creando contenedor de marcadores...');
+                $('body').prepend('<div id="cm-markers-container" class="cm-markers-container"></div>');
+                this.elements.$markersContainer = $('#cm-markers-container');
+            }
+
+            // Asegurar estado inicial
+            if (!Array.isArray(this.state.currentMarkers)) {
+                this.state.currentMarkers = [];
+            }
+
+            console.log('📍 Contenedor de marcadores inicializado');
         },
 
         // ========================================
@@ -578,20 +617,80 @@
 
         // Escape HTML
         escapeHtml: function (text) {
+            if (!text) return '';
             var div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        },
+
+        // NUEVO: Funciones básicas para marcadores (definidas aquí para evitar errores)
+        validateMarker: function (marker) {
+            if (!marker || typeof marker !== 'object') {
+                return false;
+            }
+
+            return (
+                typeof marker.id !== 'undefined' &&
+                typeof marker.type === 'string' &&
+                typeof marker.x === 'number' &&
+                typeof marker.y === 'number' &&
+                typeof marker.title === 'string'
+            );
+        },
+
+        // NUEVO: Verificar y reparar estado de marcadores
+        verifyAndRepairMarkersState: function () {
+            let repaired = false;
+
+            // Verificar currentMarkers
+            if (!Array.isArray(this.state.currentMarkers)) {
+                console.warn('🔧 Reparando currentMarkers en core...');
+                this.state.currentMarkers = [];
+                repaired = true;
+            }
+
+            // Verificar markersVisible
+            if (typeof this.state.markersVisible !== 'boolean') {
+                console.warn('🔧 Reparando markersVisible en core...');
+                this.state.markersVisible = true;
+                repaired = true;
+            }
+
+            // Verificar contenedor de marcadores
+            if (!this.elements.$markersContainer || this.elements.$markersContainer.length === 0) {
+                console.warn('🔧 Reparando contenedor de marcadores en core...');
+                this.initializeMarkersContainer();
+                repaired = true;
+            }
+
+            if (repaired) {
+                console.log('🔧 Estado de marcadores reparado en core');
+            }
+
+            return !repaired;
         }
+    };
+
+    // Estado para notas básicas (inicializado aquí para evitar problemas)
+    window.ConsoleMonitor.simpleNotes = {
+        data: [],
+        isVisible: false,
+        selectedMarker: null
     };
 
     // Auto-inicializar cuando DOM esté listo
     $(document).ready(function () {
         ConsoleMonitor.init();
+
+        // FIX: Verificar estado de marcadores después de un momento
+        setTimeout(() => {
+            ConsoleMonitor.verifyAndRepairMarkersState();
+        }, 500);
     });
 
     // Hacer disponible globalmente
     window.CM = window.ConsoleMonitor;
 
-    console.log('📦 Console Monitor Core module loaded');
+    console.log('📦 Console Monitor Core module loaded with markers support');
 
 })(jQuery);
