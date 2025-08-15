@@ -21,7 +21,7 @@ define('CONSOLE_MONITOR_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CONSOLE_MONITOR_ASSETS_URL', CONSOLE_MONITOR_PLUGIN_URL . 'assets/');
 
 /**
- * Clase principal del plugin - VERSIÓN CORREGIDA CON VALIDACIÓN MEJORADA
+ * Clase principal del plugin - TODO EN UNO + SISTEMAS COMPLETOS DE NOTAS CON MARCADORES
  */
 class ConsoleMonitorPro {
     
@@ -52,63 +52,11 @@ class ConsoleMonitorPro {
     }
     
     /**
-     * Validación de permisos mejorada - FIX PRINCIPAL
-     */
-    private function validate_ajax_request() {
-        // Log de debugging
-        error_log('Console Monitor: Validating AJAX request');
-        error_log('Console Monitor: User ID = ' . get_current_user_id());
-        error_log('Console Monitor: User can manage options = ' . (current_user_can('manage_options') ? 'YES' : 'NO'));
-        error_log('Console Monitor: Nonce provided = ' . (isset($_POST['nonce']) ? 'YES' : 'NO'));
-        
-        // 1. Verificar que el usuario está logueado
-        if (!is_user_logged_in()) {
-            error_log('Console Monitor: User not logged in');
-            wp_send_json_error('Usuario no autenticado');
-            return false;
-        }
-        
-        // 2. Verificar permisos básicos (más flexible)
-        if (!current_user_can('manage_options') && 
-            !current_user_can('edit_posts') && 
-            !current_user_can('administrator')) {
-            error_log('Console Monitor: User lacks required capabilities');
-            wp_send_json_error('Permisos insuficientes');
-            return false;
-        }
-        
-        // 3. Verificar nonce - con fallback
-        if (isset($_POST['nonce'])) {
-            if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce')) {
-                error_log('Console Monitor: Nonce verification failed');
-                error_log('Console Monitor: Provided nonce = ' . $_POST['nonce']);
-                
-                // Fallback: verificar con nonce alternativo
-                if (!wp_verify_nonce($_POST['nonce'], 'console-monitor-nonce') &&
-                    !wp_verify_nonce($_POST['nonce'], 'cm_nonce')) {
-                    wp_send_json_error('Token de seguridad inválido');
-                    return false;
-                }
-            }
-        } else {
-            error_log('Console Monitor: No nonce provided');
-            // En modo desarrollo, permitir sin nonce
-            if (!defined('WP_DEBUG') || !WP_DEBUG) {
-                wp_send_json_error('Token de seguridad requerido');
-                return false;
-            }
-        }
-        
-        error_log('Console Monitor: AJAX request validation passed');
-        return true;
-    }
-    
-    /**
      * Inicializar el plugin completo
      */
     private function init() {
-        // Solo para usuarios con permisos
-        if (!current_user_can('edit_posts')) {
+        // Solo para administradores
+        if (!current_user_can('manage_options')) {
             return;
         }
         
@@ -128,7 +76,7 @@ class ConsoleMonitorPro {
         add_action('wp_ajax_cm_get_logs', array($this, 'ajax_get_logs'));
         add_action('wp_ajax_cm_clear_logs', array($this, 'ajax_clear_logs'));
         
-        // AJAX handlers - NOTAS AVANZADAS CON MARCADORES
+        // AJAX handlers - NOTAS ORIGINALES (AVANZADAS) CON MARCADORES
         add_action('wp_ajax_cm_get_notes', array($this, 'ajax_get_notes'));
         add_action('wp_ajax_cm_save_note', array($this, 'ajax_save_note'));
         add_action('wp_ajax_cm_delete_note', array($this, 'ajax_delete_note'));
@@ -140,7 +88,7 @@ class ConsoleMonitorPro {
         add_action('wp_ajax_cm_save_marker', array($this, 'ajax_save_marker'));
         add_action('wp_ajax_cm_remove_marker', array($this, 'ajax_remove_marker'));
         
-        // AJAX handlers - NOTAS BÁSICAS CON MARCADORES
+        // AJAX handlers - NOTAS BÁSICAS (RÁPIDAS) CON MARCADORES
         add_action('wp_ajax_cm_get_simple_notes', array($this, 'ajax_get_simple_notes'));
         add_action('wp_ajax_cm_save_simple_note', array($this, 'ajax_save_simple_note'));
         add_action('wp_ajax_cm_delete_simple_note', array($this, 'ajax_delete_simple_note'));
@@ -153,7 +101,7 @@ class ConsoleMonitorPro {
         
         // Debug info
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('Console Monitor Pro: Plugin initialized for user with edit_posts capability');
+            error_log('Console Monitor Pro: Plugin initialized for user with manage_options capability');
         }
     }
     
@@ -241,10 +189,10 @@ class ConsoleMonitorPro {
     }
     
     /**
-     * Enqueue assets modulares - CON DEBUGGING MEJORADO
+     * Enqueue assets modulares
      */
     public function enqueue_assets() {
-        if (!current_user_can('edit_posts')) {
+        if (!current_user_can('manage_options')) {
             return;
         }
         
@@ -313,32 +261,22 @@ class ConsoleMonitorPro {
             true
         );
         
-        // Localizar datos para todos los módulos - CON DEBUGGING MEJORADO
-        $current_user = wp_get_current_user();
+        // Localizar datos para todos los módulos - CON DEBUG
         wp_localize_script('cm-core', 'cmData', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('console_monitor_nonce'),
             'current_url' => $this->get_current_url(),
             'debug' => defined('WP_DEBUG') && WP_DEBUG,
-            'user_can_manage' => current_user_can('manage_options'),
-            'user_can_edit' => current_user_can('edit_posts'),
-            'user_id' => get_current_user_id(),
-            'user_login' => $current_user->user_login,
-            'is_admin' => is_admin(),
-            'plugin_version' => CONSOLE_MONITOR_VERSION
+            'user_can_manage' => current_user_can('manage_options')
         ));
         
-        // Debug JavaScript inline - MEJORADO
+        // Debug JavaScript inline
         if (defined('WP_DEBUG') && WP_DEBUG) {
             wp_add_inline_script('cm-core', '
                 console.log("Console Monitor: Assets loaded with markers support");
                 console.log("cmData:", typeof cmData !== "undefined" ? cmData : "NOT DEFINED");
                 console.log("jQuery version:", jQuery.fn.jquery);
-                console.log("User ID:", ' . get_current_user_id() . ');
                 console.log("User can manage options:", ' . (current_user_can('manage_options') ? 'true' : 'false') . ');
-                console.log("User can edit posts:", ' . (current_user_can('edit_posts') ? 'true' : 'false') . ');
-                console.log("Is admin:", ' . (is_admin() ? 'true' : 'false') . ');
-                console.log("Nonce:", "' . wp_create_nonce('console_monitor_nonce') . '");
             ');
         }
     }
@@ -356,7 +294,7 @@ class ConsoleMonitorPro {
      * Inyectar interceptor de console
      */
     public function inject_console_interceptor() {
-        if (!current_user_can('edit_posts')) {
+        if (!current_user_can('manage_options')) {
             return;
         }
         ?>
@@ -485,7 +423,7 @@ class ConsoleMonitorPro {
             });
             
             // Debug inicial
-            console.log('Console Monitor: Interceptor initialized with markers support - USER ID: <?php echo get_current_user_id(); ?>');
+            console.log('Console Monitor: Interceptor initialized with markers support');
         })();
         </script>
         <?php
@@ -535,7 +473,7 @@ class ConsoleMonitorPro {
      * Renderizar TODA la interfaz flotante CON MARCADORES VISUALES COMPLETOS
      */
     public function render_floating_interface() {
-        if (!current_user_can('edit_posts')) {
+        if (!current_user_can('manage_options')) {
             return;
         }
         ?>
@@ -1444,11 +1382,12 @@ class ConsoleMonitorPro {
         <?php
     }
     
-    // AJAX HANDLERS - TERMINAL CON VALIDACIÓN MEJORADA
+    // AJAX HANDLERS - TERMINAL
     
     public function ajax_get_logs() {
-        if (!$this->validate_ajax_request()) {
-            return;
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_die('Unauthorized');
         }
         
         wp_send_json_success(array(
@@ -1458,8 +1397,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_clear_logs() {
-        if (!$this->validate_ajax_request()) {
-            return;
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_die('Unauthorized');
         }
         
         $this->log_buffer = array();
@@ -1525,10 +1465,12 @@ class ConsoleMonitorPro {
         error_log('Console Monitor: Simple notes table created successfully with markers support');
     }
     
-    // AJAX HANDLERS - NOTAS AVANZADAS CON VALIDACIÓN MEJORADA
+    // AJAX HANDLERS - NOTAS AVANZADAS (SISTEMA ORIGINAL) CON MARCADORES
     
     public function ajax_get_notes() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1583,7 +1525,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_save_note() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1657,7 +1601,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_update_note() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1730,7 +1676,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_delete_note() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1765,7 +1713,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_toggle_checklist_item() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1773,10 +1723,12 @@ class ConsoleMonitorPro {
         wp_send_json_success(array('message' => 'Checklist item toggled'));
     }
     
-    // AJAX HANDLERS - MARCADORES VISUALES CON VALIDACIÓN MEJORADA
+    // NUEVOS AJAX HANDLERS - MARCADORES VISUALES
     
     public function ajax_get_page_markers() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1835,7 +1787,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_save_marker() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1844,7 +1798,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_remove_marker() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1852,10 +1808,12 @@ class ConsoleMonitorPro {
         wp_send_json_success(array('message' => 'Marker removed with note'));
     }
     
-    // AJAX HANDLERS - NOTAS BÁSICAS CON VALIDACIÓN MEJORADA
+    // AJAX HANDLERS - NOTAS BÁSICAS (SISTEMA RÁPIDO) CON MARCADORES
     
     public function ajax_get_simple_notes() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1899,7 +1857,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_save_simple_note() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -1956,7 +1916,9 @@ class ConsoleMonitorPro {
     }
     
     public function ajax_delete_simple_note() {
-        if (!$this->validate_ajax_request()) {
+        if (!wp_verify_nonce($_POST['nonce'], 'console_monitor_nonce') || 
+            !current_user_can('manage_options')) {
+            wp_send_json_error('Sin permisos');
             return;
         }
         
@@ -2003,7 +1965,7 @@ add_action('plugins_loaded', 'console_monitor_pro');
 // Hook adicional para debugging mejorado CON MARCADORES
 if (defined('WP_DEBUG') && WP_DEBUG) {
     add_action('wp_loaded', function() {
-        if (current_user_can('edit_posts')) {
+        if (current_user_can('manage_options')) {
             global $wpdb;
             $table_name = $wpdb->prefix . 'console_monitor_notes';
             $simple_table_name = $wpdb->prefix . 'cm_simple_notes';
@@ -2026,13 +1988,10 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log("Console Monitor Debug: Simple notes count = $simple_count (with markers: $simple_markers_count)");
             }
             
-            // Verificar permisos - ACTUALIZADO
+            // Verificar permisos
             error_log("Console Monitor Debug: Current user can manage options = " . (current_user_can('manage_options') ? 'YES' : 'NO'));
-            error_log("Console Monitor Debug: Current user can edit posts = " . (current_user_can('edit_posts') ? 'YES' : 'NO'));
-            error_log("Console Monitor Debug: Current user ID = " . get_current_user_id());
             error_log("Console Monitor Debug: AJAX URL = " . admin_url('admin-ajax.php'));
             error_log("Console Monitor Debug: Markers system enabled = YES");
-            error_log("Console Monitor Debug: WP_DEBUG = " . (defined('WP_DEBUG') && WP_DEBUG ? 'YES' : 'NO'));
         }
     });
 }

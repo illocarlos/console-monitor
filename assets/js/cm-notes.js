@@ -1,116 +1,226 @@
 /**
- * Console Monitor Pro - JavaScript NOTAS COMPLETO CON MARCADORES - VERSIÓN CORREGIDA
+ * Console Monitor Pro - JavaScript NOTAS COMPLETO CORREGIDO
  * assets/js/cm-notes.js  
- * Sistema completo: notas avanzadas (con modal) + notas básicas (widget) + MARCADORES VISUALES
+ * Sistema completo: notas avanzadas + notas básicas + marcadores visuales
+ * VERSIÓN CORREGIDA - Soluciona problemas de inicialización y eventos
  */
 
 (function ($) {
     'use strict';
 
+    // ========================================
+    // VERIFICACIÓN DE DEPENDENCIAS CRÍTICAS
+    // ========================================
+
     if (!window.ConsoleMonitor) {
-        console.error('CM Notes: ConsoleMonitor core no disponible');
+        console.error('❌ CM Notes: ConsoleMonitor core no disponible');
         return;
     }
 
-    // ESTADOS PARA AMBOS SISTEMAS + MARCADORES - VERSIÓN CORREGIDA
+    if (typeof jQuery === 'undefined') {
+        console.error('❌ CM Notes: jQuery no disponible');
+        return;
+    }
+
+    console.log('✅ CM Notes: Dependencias verificadas');
+
+    // ========================================
+    // FUNCIÓN DE DEBUG MEJORADA
     // ========================================
 
-    // Extender estado para notas avanzadas
-    $.extend(window.ConsoleMonitor.state, {
-        advancedNotes: [],
-        currentEditingNote: null,
-        isEditingNote: false,
-        // NUEVO: Estados para marcadores - FIX: Inicializar con valores por defecto
-        isMarkerSelectionMode: false,
-        selectedMarker: null,
-        currentMarkers: [], // FIX: Inicializar como array vacío
-        markersVisible: true,
-        currentNoteType: null
-    });
+    function debugConsoleMonitor() {
+        console.log('🔍 ==============================================');
+        console.log('🔍 DIAGNÓSTICO CONSOLE MONITOR NOTES');
+        console.log('🔍 ==============================================');
+
+        // Verificar dependencias básicas
+        console.log('📦 DEPENDENCIAS:');
+        console.log('  - jQuery:', typeof jQuery !== 'undefined' ? '✅' : '❌');
+        console.log('  - ConsoleMonitor:', typeof window.ConsoleMonitor !== 'undefined' ? '✅' : '❌');
+        console.log('  - cmData:', typeof cmData !== 'undefined' ? '✅' : '❌');
+
+        if (typeof cmData !== 'undefined') {
+            console.log('  - AJAX URL:', cmData.ajax_url || '❌');
+            console.log('  - Nonce:', cmData.nonce ? '✅' : '❌');
+            console.log('  - Current URL:', cmData.current_url || '❌');
+        }
+
+        // Verificar elementos DOM críticos
+        console.log('\n📋 ELEMENTOS DOM:');
+        console.log('  - Botón flotante:', $('#cm-floating-btn').length ? '✅' : '❌');
+        console.log('  - Botón nueva nota:', $('.cm-btn-add-note').length ? '✅' : '❌');
+        console.log('  - Panel notas:', $('#cm-notes').length ? '✅' : '❌');
+        console.log('  - Modal notas:', $('#cm-note-modal').length ? '✅' : '❌');
+        console.log('  - Container notas:', $('#cm-notes-container').length ? '✅' : '❌');
+        console.log('  - Formulario notas:', $('#cm-note-form').length ? '✅' : '❌');
+        console.log('  - Marcadores container:', $('#cm-markers-container').length ? '✅' : '❌');
+
+        // Verificar widget notas básicas
+        console.log('\n📝 NOTAS BÁSICAS:');
+        console.log('  - Botón toggle:', $('.cm-simple-toggle-btn').length ? '✅' : '❌');
+        console.log('  - Widget:', $('.cm-simple-notes-widget').length ? '✅' : '❌');
+        console.log('  - Lista:', $('.cm-simple-notes-list').length ? '✅' : '❌');
+
+        // Verificar estado
+        if (window.ConsoleMonitor.state) {
+            console.log('\n🔧 ESTADO:');
+            console.log('  - advancedNotes:', Array.isArray(window.ConsoleMonitor.state.advancedNotes) ? '✅' : '❌');
+            console.log('  - currentMarkers:', Array.isArray(window.ConsoleMonitor.state.currentMarkers) ? '✅' : '❌');
+            console.log('  - markersVisible:', typeof window.ConsoleMonitor.state.markersVisible === 'boolean' ? '✅' : '❌');
+        }
+
+        console.log('🔍 ==============================================\n');
+    }
+
+    // ========================================
+    // EXTENDER ESTADO BASE DE MANERA SEGURA
+    // ========================================
+
+    if (window.ConsoleMonitor.state) {
+        $.extend(window.ConsoleMonitor.state, {
+            // Notas avanzadas
+            advancedNotes: [],
+            currentEditingNote: null,
+            isEditingNote: false,
+
+            // Sistema de marcadores - FIX: Inicializar correctamente
+            isMarkerSelectionMode: false,
+            selectedMarker: null,
+            currentMarkers: [],
+            markersVisible: true,
+            currentNoteType: null
+        });
+        console.log('✅ Estado extendido correctamente');
+    } else {
+        console.error('❌ window.ConsoleMonitor.state no disponible');
+    }
 
     // Estado para notas básicas
     window.ConsoleMonitor.simpleNotes = {
         data: [],
         isVisible: false,
-        // NUEVO: Marcador para notas básicas
         selectedMarker: null
     };
 
     // Extender elementos DOM
-    $.extend(window.ConsoleMonitor.elements, {
-        $notes: null,
-        $notesContainer: null,
-        $noteModal: null,
-        $noteForm: null,
-        // NUEVO: Contenedor de marcadores
-        $markersContainer: null
-    });
+    if (window.ConsoleMonitor.elements) {
+        $.extend(window.ConsoleMonitor.elements, {
+            $notes: null,
+            $notesContainer: null,
+            $noteModal: null,
+            $noteForm: null,
+            $markersContainer: null
+        });
+        console.log('✅ Elementos DOM preparados');
+    }
 
     // ========================================
-    // INICIALIZACIÓN - FIX: Mejorar manejo de errores
+    // SOBREESCRIBIR INICIALIZACIÓN PRINCIPAL
     // ========================================
 
     const originalInit = window.ConsoleMonitor.init;
     window.ConsoleMonitor.init = function () {
         try {
+            console.log('🚀 Iniciando ConsoleMonitor con Notes...');
+
+            // Llamar init original
             originalInit.call(this);
-            this.initNotesModule();
-            this.initSimpleNotesModule();
-            // NUEVO: Inicializar sistema de marcadores
-            this.initMarkersSystem();
+
+            // Esperar a que DOM esté completamente listo
+            $(document).ready(() => {
+                setTimeout(() => {
+                    try {
+                        this.initNotesModule();
+                        this.initSimpleNotesModule();
+                        this.initMarkersSystem();
+
+                        // Debug después de inicialización
+                        setTimeout(debugConsoleMonitor, 500);
+
+                        console.log('✅ Módulos de notas inicializados correctamente');
+                    } catch (error) {
+                        console.error('❌ Error en inicialización de módulos:', error);
+                    }
+                }, 100);
+            });
+
         } catch (error) {
-            console.error('Error inicializando ConsoleMonitor:', error);
+            console.error('❌ Error en init principal:', error);
         }
     };
+
+    // ========================================
+    // SOBREESCRIBIR CACHE DE ELEMENTOS
+    // ========================================
 
     const originalCacheElements = window.ConsoleMonitor.cacheElements;
     window.ConsoleMonitor.cacheElements = function () {
         try {
+            console.log('📦 Cacheando elementos...');
+
+            // Llamar cache original
             originalCacheElements.call(this);
+
+            // Cache elementos específicos de notas
             this.elements.$notes = $('#cm-notes');
             this.elements.$notesContainer = $('#cm-notes-container');
             this.elements.$noteModal = $('#cm-note-modal');
             this.elements.$noteForm = $('#cm-note-form');
-            // NUEVO: Cachear contenedor de marcadores
             this.elements.$markersContainer = $('#cm-markers-container');
 
-            // FIX: Verificar que el contenedor de marcadores existe
+            // Crear contenedor de marcadores si no existe
             if (this.elements.$markersContainer.length === 0) {
-                console.warn('📍 Contenedor de marcadores no encontrado, creándolo...');
-                $('body').append('<div id="cm-markers-container" class="cm-markers-container"></div>');
+                console.log('🔧 Creando contenedor de marcadores...');
+                $('body').prepend('<div id="cm-markers-container" class="cm-markers-container"></div>');
                 this.elements.$markersContainer = $('#cm-markers-container');
             }
+
+            console.log('✅ Elementos cacheados:', {
+                notes: this.elements.$notes.length,
+                modal: this.elements.$noteModal.length,
+                container: this.elements.$notesContainer.length,
+                markers: this.elements.$markersContainer.length
+            });
+
         } catch (error) {
-            console.error('Error cacheando elementos:', error);
+            console.error('❌ Error cacheando elementos:', error);
         }
     };
 
-    // Inicialización notas avanzadas
+    // ========================================
+    // INICIALIZACIÓN DE MÓDULOS
+    // ========================================
+
+    // Inicializar notas avanzadas
     window.ConsoleMonitor.initNotesModule = function () {
         try {
+            console.log('📝 Inicializando módulo de notas avanzadas...');
             this.bindAdvancedNotesEvents();
-            console.log('📝 Advanced Notes System initialized');
+            console.log('✅ Módulo de notas avanzadas inicializado');
         } catch (error) {
-            console.error('Error inicializando notas avanzadas:', error);
+            console.error('❌ Error inicializando notas avanzadas:', error);
         }
     };
 
-    // Inicialización notas básicas
+    // Inicializar notas básicas
     window.ConsoleMonitor.initSimpleNotesModule = function () {
         try {
+            console.log('📋 Inicializando módulo de notas básicas...');
             this.bindSimpleNotesEvents();
             this.loadSimpleNotesCount();
-            console.log('📝 Simple Notes System initialized');
+            console.log('✅ Módulo de notas básicas inicializado');
         } catch (error) {
-            console.error('Error inicializando notas básicas:', error);
+            console.error('❌ Error inicializando notas básicas:', error);
         }
     };
 
-    // NUEVO: Inicialización sistema de marcadores
+    // Inicializar sistema de marcadores
     window.ConsoleMonitor.initMarkersSystem = function () {
         try {
-            // FIX: Asegurar que el estado está inicializado
-            if (!this.state.currentMarkers) {
+            console.log('📍 Inicializando sistema de marcadores...');
+
+            // Asegurar estado inicial
+            if (!Array.isArray(this.state.currentMarkers)) {
                 this.state.currentMarkers = [];
             }
             if (typeof this.state.markersVisible === 'undefined') {
@@ -119,104 +229,112 @@
 
             this.bindMarkersEvents();
 
-            // FIX: Cargar marcadores con manejo de errores
+            // Cargar marcadores después de un momento
             setTimeout(() => {
-                try {
-                    this.loadPageMarkers();
-                } catch (error) {
-                    console.error('Error cargando marcadores iniciales:', error);
-                }
+                this.loadPageMarkers();
             }, 1000);
 
-            console.log('📍 Visual Markers System initialized');
+            console.log('✅ Sistema de marcadores inicializado');
         } catch (error) {
-            console.error('Error inicializando sistema de marcadores:', error);
+            console.error('❌ Error inicializando marcadores:', error);
         }
     };
 
     // ========================================
-    // EVENTOS DEL SISTEMA AVANZADO
+    // EVENTOS NOTAS AVANZADAS - CORREGIDOS
     // ========================================
 
     window.ConsoleMonitor.bindAdvancedNotesEvents = function () {
         const self = this;
+        console.log('🔗 Vinculando eventos de notas avanzadas...');
 
-        // Panel abierto - cargar notas avanzadas
-        $(document).on('cm:panel:opened', function (e, panelType) {
+        // EVENTO CRÍTICO - Botón nueva nota (múltiples selectores para compatibilidad)
+        $(document).off('click.noteEvents').on('click.noteEvents', '.cm-btn-add-note, button[data-action="add-note"]', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log('🔥 ¡CLICK DETECTADO EN BOTÓN NUEVA NOTA!');
+            console.log('Elemento clickeado:', this);
+            console.log('Clases del elemento:', this.className);
+
+            try {
+                self.openNoteModal();
+            } catch (error) {
+                console.error('❌ Error abriendo modal:', error);
+                alert('Error abriendo formulario: ' + error.message);
+            }
+        });
+
+        // Evento cuando se abre el panel de notas
+        $(document).off('cm:panel:opened.notes').on('cm:panel:opened.notes', function (e, panelType) {
             if (panelType === 'notes') {
+                console.log('📝 Panel de notas abierto, cargando contenido...');
                 setTimeout(() => {
                     self.loadAdvancedNotes();
-                    // NUEVO: Cargar marcadores al abrir panel
                     self.loadPageMarkers();
                 }, 100);
             }
         });
 
-        // Botón nueva nota avanzada
-        $(document).on('click', '.cm-btn-add-note', function (e) {
-            e.preventDefault();
-            self.openNoteModal();
-        });
-
         // Botón actualizar notas
-        $(document).on('click', '.cm-btn-refresh-notes', function (e) {
+        $(document).off('click.refreshNotes').on('click.refreshNotes', '.cm-btn-refresh-notes', function (e) {
             e.preventDefault();
+            console.log('🔄 Actualizando notas...');
             self.loadAdvancedNotes();
-            // NUEVO: Actualizar marcadores también
             self.loadPageMarkers();
         });
 
-        // NUEVO: Botón toggle marcadores
-        $(document).on('click', '.cm-btn-toggle-markers', function (e) {
+        // Botón toggle marcadores
+        $(document).off('click.toggleMarkers').on('click.toggleMarkers', '.cm-btn-toggle-markers', function (e) {
             e.preventDefault();
+            console.log('👁️ Toggle marcadores...');
             self.toggleMarkersVisibility();
         });
 
-        // Modal events
-        $(document).on('click', '.cm-note-modal-close, .cm-btn-cancel', function (e) {
+        // Cerrar modal
+        $(document).off('click.closeModal').on('click.closeModal', '.cm-note-modal-close, .cm-btn-cancel', function (e) {
             e.preventDefault();
+            console.log('❌ Cerrando modal...');
             self.closeNoteModal();
         });
 
-        // Cerrar modal al hacer click fuera - CORREGIDO
-        $(document).on('click', '#cm-note-modal', function (e) {
-            // NUEVO: No cerrar si estamos en modo selección de marcador
-            if (self.state.isMarkerSelectionMode) {
-                return;
-            }
-
-            if (e.target === this) {
+        // Cerrar modal al hacer click fuera
+        $(document).off('click.modalOverlay').on('click.modalOverlay', '#cm-note-modal', function (e) {
+            if (e.target === this && !self.state.isMarkerSelectionMode) {
+                console.log('❌ Cerrando modal por click fuera...');
                 self.closeNoteModal();
             }
         });
 
         // Submit del formulario
-        $(document).on('submit', '#cm-note-form', function (e) {
+        $(document).off('submit.noteForm').on('submit.noteForm', '#cm-note-form', function (e) {
             e.preventDefault();
+            console.log('💾 Enviando formulario...');
             self.saveAdvancedNote();
         });
 
-        // NUEVO: Cambiar marcador
-        $(document).on('click', '.cm-btn-change-marker', function (e) {
+        // Cambiar marcador
+        $(document).off('click.changeMarker').on('click.changeMarker', '.cm-btn-change-marker', function (e) {
             e.preventDefault();
+            console.log('🎯 Cambiar marcador...');
             self.startMarkerSelection('advanced');
         });
 
-        // Agregar item a checklist
-        $(document).on('click', '.cm-checklist-add', function (e) {
+        // Checklist - agregar item
+        $(document).off('click.addChecklist').on('click.addChecklist', '.cm-checklist-add', function (e) {
             e.preventDefault();
             self.addChecklistItem($(this));
         });
 
-        // Remover item de checklist
-        $(document).on('click', '.cm-checklist-remove', function (e) {
+        // Checklist - remover item
+        $(document).off('click.removeChecklist').on('click.removeChecklist', '.cm-checklist-remove', function (e) {
             e.preventDefault();
             $(this).closest('.cm-checklist-item').remove();
         });
 
         // Enter en checklist input
-        $(document).on('keypress', '.cm-checklist-input', function (e) {
-            if (e.which === 13) { // Enter
+        $(document).off('keypress.checklistInput').on('keypress.checklistInput', '.cm-checklist-input', function (e) {
+            if (e.which === 13) {
                 e.preventDefault();
                 const $addBtn = $(this).siblings('.cm-checklist-add');
                 if ($addBtn.length) {
@@ -225,103 +343,308 @@
             }
         });
 
-        // Editar nota avanzada
-        $(document).on('click', '.cm-advanced-note-edit', function (e) {
+        // Editar nota
+        $(document).off('click.editNote').on('click.editNote', '.cm-advanced-note-edit', function (e) {
             e.preventDefault();
-            e.stopPropagation(); // NUEVO: Evitar conflicto con click en nota
+            e.stopPropagation();
             const noteId = $(this).data('note-id');
+            console.log('✏️ Editando nota:', noteId);
             self.editAdvancedNote(noteId);
         });
 
-        // Eliminar nota avanzada
-        $(document).on('click', '.cm-advanced-note-delete', function (e) {
+        // Eliminar nota
+        $(document).off('click.deleteNote').on('click.deleteNote', '.cm-advanced-note-delete', function (e) {
             e.preventDefault();
-            e.stopPropagation(); // NUEVO: Evitar conflicto con click en nota
+            e.stopPropagation();
             const noteId = $(this).data('note-id');
-            if (confirm('¿Estás seguro de que quieres eliminar esta nota avanzada?')) {
+            if (confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
+                console.log('🗑️ Eliminando nota:', noteId);
                 self.deleteAdvancedNote(noteId);
             }
         });
 
-        // NUEVO: Ir a marcador (nota avanzada)
-        $(document).on('click', '.cm-advanced-note-goto', function (e) {
+        // Ir a marcador
+        $(document).off('click.gotoMarker').on('click.gotoMarker', '.cm-advanced-note-goto', function (e) {
             e.preventDefault();
             e.stopPropagation();
             const noteId = $(this).data('note-id');
+            console.log('🎯 Ir a marcador:', noteId);
             self.goToMarker(noteId, 'advanced');
         });
 
-        // NUEVO: Click en nota avanzada (ir a marcador)
-        $(document).on('click', '.cm-advanced-note.cm-note-with-marker', function (e) {
-            // Solo si no se hizo click en un botón
+        // Click en nota para ir a marcador
+        $(document).off('click.noteToMarker').on('click.noteToMarker', '.cm-advanced-note.cm-note-with-marker', function (e) {
             if (!$(e.target).is('button') && !$(e.target).closest('button').length) {
                 const noteId = $(this).data('note-id');
+                console.log('🎯 Click en nota para ir a marcador:', noteId);
                 self.goToMarker(noteId, 'advanced');
             }
         });
 
-        // ESC para cerrar modal
-        $(document).on('keyup', function (e) {
+        // ESC para cerrar
+        $(document).off('keyup.escapeKey').on('keyup.escapeKey', function (e) {
             if (e.keyCode === 27) {
-                if (self.elements.$noteModal.is(':visible')) {
+                if (self.elements.$noteModal && self.elements.$noteModal.is(':visible')) {
                     self.closeNoteModal();
-                }
-                // NUEVO: También cancelar selección de marcador
-                else if (self.state.isMarkerSelectionMode) {
+                } else if (self.state.isMarkerSelectionMode) {
                     self.cancelMarkerSelection();
                 }
             }
         });
+
+        console.log('✅ Eventos de notas avanzadas vinculados');
     };
 
     // ========================================
-    // FUNCIONES DEL SISTEMA AVANZADO
+    // FUNCIONES PRINCIPALES NOTAS AVANZADAS
     // ========================================
+
+    // Abrir modal - VERSIÓN CORREGIDA Y ROBUSTA
+    window.ConsoleMonitor.openNoteModal = function (noteData = null) {
+        try {
+            console.log('📝 ================================');
+            console.log('📝 ABRIENDO MODAL DE NOTA');
+            console.log('📝 ================================');
+            console.log('Datos de nota:', noteData);
+
+            const $modal = $('#cm-note-modal');
+
+            if ($modal.length === 0) {
+                console.error('❌ Modal no encontrado en DOM');
+                console.log('🔍 Elementos disponibles:', $('[id*="modal"], [class*="modal"]').length);
+                alert('Error crítico: El modal de notas no está disponible. Verifica que el HTML se haya renderizado correctamente.');
+                return;
+            }
+
+            console.log('✅ Modal encontrado, configurando...');
+
+            // Configurar estado
+            this.state.isEditingNote = !!noteData;
+            this.state.currentEditingNote = noteData;
+
+            // Configurar título del modal
+            const modalTitle = noteData ? 'Editar Nota con Marcador' : 'Nueva Nota con Marcador';
+            $('#cm-note-modal-title').text(modalTitle);
+            console.log('✅ Título configurado:', modalTitle);
+
+            // Limpiar formulario
+            const $form = $('#cm-note-form');
+            if ($form.length > 0) {
+                $form[0].reset();
+                console.log('✅ Formulario limpiado');
+            } else {
+                console.warn('⚠️ Formulario no encontrado');
+            }
+
+            // Resetear checklist
+            $('#cm-checklist-container').html(`
+                <div class="cm-checklist-item">
+                    <input type="text" placeholder="Nueva tarea..." class="cm-checklist-input">
+                    <button type="button" class="cm-checklist-add">➕</button>
+                </div>
+            `);
+            console.log('✅ Checklist reseteado');
+
+            // Configurar marcador
+            this.state.selectedMarker = null;
+            const currentUrl = window.location.href;
+            $('#cm-page-url').val(currentUrl);
+            console.log('✅ URL configurada:', currentUrl);
+
+            // Si estamos editando, llenar datos
+            if (noteData) {
+                console.log('📝 Llenando datos de nota existente...');
+
+                $('#cm-note-title').val(noteData.title || '');
+                $('#cm-note-description').val(noteData.description || '');
+                $('#cm-note-url').val(noteData.url || '');
+
+                if (noteData.has_marker) {
+                    this.state.selectedMarker = {
+                        x: noteData.marker_x,
+                        y: noteData.marker_y
+                    };
+                    $('#cm-marker-x').val(noteData.marker_x);
+                    $('#cm-marker-y').val(noteData.marker_y);
+                    this.showSelectedMarker(noteData.marker_x, noteData.marker_y);
+                    console.log('✅ Marcador configurado:', this.state.selectedMarker);
+                } else {
+                    this.showMarkerInstruction();
+                }
+
+                // Llenar checklist si existe
+                if (noteData.checklist && Array.isArray(noteData.checklist) && noteData.checklist.length > 0) {
+                    const checklistHtml = noteData.checklist.map(item => `
+                        <div class="cm-checklist-item">
+                            <input type="text" value="${this.escapeHtml(item.text)}" class="cm-checklist-input" data-checked="${item.checked ? 'true' : 'false'}">
+                            <button type="button" class="cm-checklist-remove">🗑️</button>
+                        </div>
+                    `).join('') + `
+                        <div class="cm-checklist-item">
+                            <input type="text" placeholder="Nueva tarea..." class="cm-checklist-input">
+                            <button type="button" class="cm-checklist-add">➕</button>
+                        </div>
+                    `;
+                    $('#cm-checklist-container').html(checklistHtml);
+                    console.log('✅ Checklist llenado');
+                }
+            } else {
+                console.log('📝 Nueva nota - mostrando instrucciones de marcador');
+                this.showMarkerInstruction();
+            }
+
+            // Mostrar modal con animación
+            console.log('✅ Mostrando modal...');
+            $modal.fadeIn(300, function () {
+                console.log('✅ Modal visible, enfocando título...');
+                $('#cm-note-title').focus();
+            });
+
+            // Activar modo selección de marcador si es nueva nota
+            if (!this.state.selectedMarker) {
+                console.log('🎯 Activando modo selección de marcador...');
+                setTimeout(() => {
+                    this.startMarkerSelection('advanced');
+                }, 500);
+            }
+
+            console.log('✅ Modal abierto exitosamente');
+
+        } catch (error) {
+            console.error('❌ Error crítico en openNoteModal:', error);
+            console.error('Stack trace:', error.stack);
+            alert('Error crítico abriendo modal: ' + error.message);
+        }
+    };
+
+    // Cerrar modal
+    window.ConsoleMonitor.closeNoteModal = function () {
+        try {
+            console.log('❌ Cerrando modal de nota...');
+
+            const $modal = $('#cm-note-modal');
+            if ($modal.length > 0) {
+                $modal.fadeOut(300);
+            }
+
+            this.state.isEditingNote = false;
+            this.state.currentEditingNote = null;
+
+            // Cancelar selección de marcador
+            this.cancelMarkerSelection();
+
+            console.log('✅ Modal cerrado');
+        } catch (error) {
+            console.error('❌ Error cerrando modal:', error);
+        }
+    };
+
+    // Mostrar instrucción de marcador
+    window.ConsoleMonitor.showMarkerInstruction = function () {
+        $('#cm-marker-instruction').show();
+        $('#cm-marker-selected').hide();
+        console.log('📍 Mostrando instrucciones de marcador');
+    };
+
+    // Mostrar marcador seleccionado
+    window.ConsoleMonitor.showSelectedMarker = function (x, y, elementInfo = '') {
+        $('#cm-marker-instruction').hide();
+        $('#cm-marker-selected').show();
+        $('#cm-marker-coordinates').text(`${x}, ${y}`);
+        $('#cm-marker-element-info').text(elementInfo || 'Elemento seleccionado');
+        $('#cm-marker-x').val(x);
+        $('#cm-marker-y').val(y);
+        console.log('✅ Marcador seleccionado mostrado:', { x, y, elementInfo });
+    };
+
+    // Agregar item a checklist
+    window.ConsoleMonitor.addChecklistItem = function ($button) {
+        const $input = $button.siblings('.cm-checklist-input');
+        const text = $input.val().trim();
+
+        if (!text) {
+            alert('Por favor escribe una tarea');
+            $input.focus();
+            return;
+        }
+
+        const newItemHtml = `
+            <div class="cm-checklist-item">
+                <input type="text" value="${this.escapeHtml(text)}" class="cm-checklist-input" data-checked="false">
+                <button type="button" class="cm-checklist-remove">🗑️</button>
+            </div>
+        `;
+
+        $button.closest('.cm-checklist-item').before(newItemHtml);
+        $input.val('').focus();
+        console.log('✅ Item de checklist agregado:', text);
+    };
 
     // Cargar notas avanzadas
     window.ConsoleMonitor.loadAdvancedNotes = function () {
         const self = this;
 
-        console.log('📝 Cargando notas avanzadas...');
+        console.log('📥 ================================');
+        console.log('📥 CARGANDO NOTAS AVANZADAS');
+        console.log('📥 ================================');
 
         if (typeof cmData === 'undefined') {
-            console.error('📝 cmData no disponible para notas avanzadas');
-            this.showAdvancedNotesError('Error: Configuración no disponible');
+            console.error('❌ cmData no disponible');
+            this.showAdvancedNotesError('Error: Configuración no disponible (cmData)');
             return;
         }
+
+        if (!cmData.ajax_url) {
+            console.error('❌ AJAX URL no disponible');
+            this.showAdvancedNotesError('Error: URL AJAX no configurada');
+            return;
+        }
+
+        if (!cmData.nonce) {
+            console.error('❌ Nonce no disponible');
+            this.showAdvancedNotesError('Error: Token de seguridad no disponible');
+            return;
+        }
+
+        console.log('✅ Configuración verificada, enviando petición...');
+        console.log('AJAX URL:', cmData.ajax_url);
+        console.log('Nonce:', cmData.nonce);
 
         $.post(cmData.ajax_url, {
             action: 'cm_get_notes',
             nonce: cmData.nonce
         })
             .done(function (response) {
-                console.log('📝 Respuesta notas avanzadas:', response);
+                console.log('📥 Respuesta recibida:', response);
 
-                if (response.success) {
+                if (response && response.success) {
                     self.state.advancedNotes = response.data.notes || [];
                     self.renderAdvancedNotes();
                     self.updateAdvancedNotesCount();
+                    console.log('✅ Notas cargadas exitosamente:', self.state.advancedNotes.length);
                 } else {
-                    console.error('📝 Error en respuesta avanzada:', response.data);
-                    self.showAdvancedNotesError('Error al cargar notas: ' + (response.data || 'Error desconocido'));
+                    console.error('❌ Error en respuesta del servidor:', response);
+                    const errorMsg = (response && response.data) ? response.data : 'Error desconocido del servidor';
+                    self.showAdvancedNotesError('Error del servidor: ' + errorMsg);
                 }
             })
             .fail(function (xhr, status, error) {
-                console.error('📝 AJAX Error notas avanzadas:', { xhr, status, error });
-                self.showAdvancedNotesError('Error de conexión al cargar notas avanzadas');
+                console.error('❌ Error AJAX:', { xhr, status, error });
+                console.error('Response text:', xhr.responseText);
+                self.showAdvancedNotesError('Error de conexión: ' + error + ' (Status: ' + status + ')');
             });
     };
 
     // Renderizar notas avanzadas
     window.ConsoleMonitor.renderAdvancedNotes = function () {
-        const $container = this.elements.$notesContainer;
+        const $container = $('#cm-notes-container');
 
         if (!$container.length) {
-            console.warn('📝 Contenedor de notas avanzadas no encontrado');
+            console.error('❌ Contenedor de notas no encontrado');
             return;
         }
 
-        console.log('📝 Renderizando', this.state.advancedNotes.length, 'notas avanzadas');
+        console.log('🎨 Renderizando', this.state.advancedNotes.length, 'notas avanzadas');
 
         if (this.state.advancedNotes.length === 0) {
             $container.html(`
@@ -339,6 +662,7 @@
 
         const html = this.state.advancedNotes.map(note => this.renderAdvancedNoteItem(note)).join('');
         $container.html(html);
+        console.log('✅ Notas renderizadas');
     };
 
     // Renderizar item individual de nota avanzada
@@ -347,7 +671,7 @@
             `<ul class="cm-advanced-note-checklist">
                 ${note.checklist.map(item => `
                     <li>
-                        <input type="checkbox" ${item.checked ? 'checked' : ''}>
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} disabled>
                         <span>${this.escapeHtml(item.text)}</span>
                     </li>
                 `).join('')}
@@ -356,11 +680,9 @@
         const urlHtml = note.url ?
             `<a href="${note.url}" target="_blank" class="cm-advanced-note-url">🔗 ${note.url}</a>` : '';
 
-        // NUEVO: Información del marcador
         const markerInfo = note.has_marker ?
             `<div class="cm-advanced-note-marker-info">📍 Marcado en (${note.marker_x}, ${note.marker_y})</div>` : '';
 
-        // NUEVO: Clases CSS para notas con marcador
         const noteClasses = ['cm-advanced-note'];
         if (note.has_marker) {
             noteClasses.push('cm-note-with-marker');
@@ -389,151 +711,38 @@
         `;
     };
 
-    // Abrir modal de nota
-    window.ConsoleMonitor.openNoteModal = function (noteData = null) {
-        this.state.isEditingNote = !!noteData;
-        this.state.currentEditingNote = noteData;
-
-        // Configurar título del modal
-        const modalTitle = noteData ? 'Editar Nota con Marcador' : 'Nueva Nota con Marcador';
-        $('#cm-note-modal-title').text(modalTitle);
-
-        // Limpiar formulario
-        this.elements.$noteForm[0].reset();
-        $('#cm-checklist-container').html(`
-            <div class="cm-checklist-item">
-                <input type="text" placeholder="Nueva tarea..." class="cm-checklist-input">
-                <button type="button" class="cm-checklist-add">➕</button>
-            </div>
-        `);
-
-        // NUEVO: Resetear estado de marcador
-        this.state.selectedMarker = null;
-        $('#cm-page-url').val(cmData.current_url);
-
-        // Si estamos editando, llenar con datos
-        if (noteData) {
-            $('#cm-note-title').val(noteData.title);
-            $('#cm-note-description').val(noteData.description);
-            $('#cm-note-url').val(noteData.url);
-
-            // NUEVO: Si tiene marcador, mostrarlo
-            if (noteData.has_marker) {
-                this.state.selectedMarker = {
-                    x: noteData.marker_x,
-                    y: noteData.marker_y
-                };
-                $('#cm-marker-x').val(noteData.marker_x);
-                $('#cm-marker-y').val(noteData.marker_y);
-                this.showSelectedMarker(noteData.marker_x, noteData.marker_y);
-            } else {
-                this.showMarkerInstruction();
-            }
-
-            // Llenar checklist
-            if (noteData.checklist && noteData.checklist.length > 0) {
-                const checklistHtml = noteData.checklist.map(item => `
-                    <div class="cm-checklist-item">
-                        <input type="text" value="${this.escapeHtml(item.text)}" class="cm-checklist-input" data-checked="${item.checked ? 'true' : 'false'}">
-                        <button type="button" class="cm-checklist-remove">🗑️</button>
-                    </div>
-                `).join('') + `
-                    <div class="cm-checklist-item">
-                        <input type="text" placeholder="Nueva tarea..." class="cm-checklist-input">
-                        <button type="button" class="cm-checklist-add">➕</button>
-                    </div>
-                `;
-                $('#cm-checklist-container').html(checklistHtml);
-            }
-        } else {
-            // NUEVO: Nota nueva - mostrar instrucción de marcador
-            this.showMarkerInstruction();
-        }
-
-        // Mostrar modal
-        this.elements.$noteModal.fadeIn(300);
-
-        // NUEVO: Si no hay marcador, activar modo selección
-        if (!this.state.selectedMarker) {
-            setTimeout(() => {
-                this.startMarkerSelection('advanced');
-            }, 500);
-        } else {
-            $('#cm-note-title').focus();
-        }
-    };
-
-    // Cerrar modal de nota
-    window.ConsoleMonitor.closeNoteModal = function () {
-        this.elements.$noteModal.fadeOut(300);
-        this.state.isEditingNote = false;
-        this.state.currentEditingNote = null;
-        // NUEVO: Cancelar selección de marcador
-        this.cancelMarkerSelection();
-    };
-
-    // NUEVO: Mostrar instrucción de marcador
-    window.ConsoleMonitor.showMarkerInstruction = function () {
-        $('#cm-marker-instruction').show();
-        $('#cm-marker-selected').hide();
-    };
-
-    // NUEVO: Mostrar marcador seleccionado
-    window.ConsoleMonitor.showSelectedMarker = function (x, y, elementInfo = '') {
-        $('#cm-marker-instruction').hide();
-        $('#cm-marker-selected').show();
-        $('#cm-marker-coordinates').text(`${x}, ${y}`);
-        $('#cm-marker-element-info').text(elementInfo || 'Elemento seleccionado');
-        $('#cm-marker-x').val(x);
-        $('#cm-marker-y').val(y);
-    };
-
-    // Agregar item a checklist
-    window.ConsoleMonitor.addChecklistItem = function ($button) {
-        const $input = $button.siblings('.cm-checklist-input');
-        const text = $input.val().trim();
-
-        if (!text) {
-            alert('Por favor escribe una tarea');
-            $input.focus();
-            return;
-        }
-
-        // Crear nuevo item
-        const newItemHtml = `
-            <div class="cm-checklist-item">
-                <input type="text" value="${this.escapeHtml(text)}" class="cm-checklist-input" data-checked="false">
-                <button type="button" class="cm-checklist-remove">🗑️</button>
-            </div>
-        `;
-
-        // Insertar antes del item de "agregar"
-        $button.closest('.cm-checklist-item').before(newItemHtml);
-
-        // Limpiar input
-        $input.val('').focus();
-    };
-
     // Guardar nota avanzada
     window.ConsoleMonitor.saveAdvancedNote = function () {
         const self = this;
+
+        console.log('💾 ================================');
+        console.log('💾 GUARDANDO NOTA AVANZADA');
+        console.log('💾 ================================');
 
         // Recopilar datos del formulario
         const title = $('#cm-note-title').val().trim();
         const description = $('#cm-note-description').val().trim();
         const url = $('#cm-note-url').val().trim();
-        // NUEVO: Coordenadas del marcador
         const marker_x = parseInt($('#cm-marker-x').val()) || 0;
         const marker_y = parseInt($('#cm-marker-y').val()) || 0;
         const page_url = $('#cm-page-url').val();
 
+        console.log('📋 Datos del formulario:', {
+            title,
+            description,
+            url,
+            marker_x,
+            marker_y,
+            page_url
+        });
+
+        // Validar datos requeridos
         if (!title) {
             alert('El título es requerido');
             $('#cm-note-title').focus();
             return;
         }
 
-        // NUEVO: Validar marcador
         if (!marker_x || !marker_y) {
             alert('Debes marcar un punto en la página');
             this.startMarkerSelection('advanced');
@@ -555,13 +764,14 @@
             }
         });
 
-        // Preparar datos
+        console.log('📋 Checklist recopilado:', checklist);
+
+        // Preparar datos para envío
         const noteData = {
             title: title,
             description: description,
             url: url,
             checklist: JSON.stringify(checklist),
-            // NUEVO: Datos del marcador
             marker_x: marker_x,
             marker_y: marker_y,
             page_url: page_url
@@ -570,6 +780,7 @@
         // Si estamos editando, agregar ID
         if (this.state.isEditingNote && this.state.currentEditingNote) {
             noteData.note_id = this.state.currentEditingNote.id;
+            console.log('✏️ Editando nota ID:', noteData.note_id);
         }
 
         // Mostrar estado de carga
@@ -577,32 +788,43 @@
         const originalText = $saveBtn.text();
         $saveBtn.text('Guardando...').prop('disabled', true);
 
-        // Determinar acción
+        // Determinar acción AJAX
         const action = this.state.isEditingNote ? 'cm_update_note' : 'cm_save_note';
+        console.log('🚀 Enviando acción:', action);
 
-        // Enviar
+        // Verificar configuración AJAX
+        if (typeof cmData === 'undefined') {
+            console.error('❌ cmData no disponible');
+            alert('Error: Configuración no disponible');
+            $saveBtn.text(originalText).prop('disabled', false);
+            return;
+        }
+
+        // Enviar datos
         $.post(cmData.ajax_url, {
             action: action,
             nonce: cmData.nonce,
             ...noteData
         })
             .done(function (response) {
-                console.log('📝 Nota avanzada guardada:', response);
+                console.log('💾 Respuesta del servidor:', response);
 
-                if (response.success) {
+                if (response && response.success) {
+                    console.log('✅ Nota guardada exitosamente');
                     self.closeNoteModal();
-                    self.loadAdvancedNotes(); // Recargar lista
-                    // NUEVO: Recargar marcadores
+                    self.loadAdvancedNotes();
                     self.loadPageMarkers();
-                    self.showNotification(response.data.message || 'Nota con marcador guardada', 'success');
+                    self.showNotification(response.data.message || 'Nota guardada exitosamente', 'success');
                 } else {
-                    console.error('📝 Error guardando nota avanzada:', response.data);
-                    alert('❌ Error: ' + (response.data || 'Error desconocido'));
+                    console.error('❌ Error del servidor:', response);
+                    const errorMsg = (response && response.data) ? response.data : 'Error desconocido del servidor';
+                    alert('❌ Error: ' + errorMsg);
                 }
             })
             .fail(function (xhr, status, error) {
-                console.error('📝 AJAX Error guardando nota avanzada:', { xhr, status, error });
-                alert('Error de conexión al guardar nota avanzada');
+                console.error('❌ Error AJAX guardando:', { xhr, status, error });
+                console.error('Response text:', xhr.responseText);
+                alert('Error de conexión al guardar: ' + error);
             })
             .always(function () {
                 $saveBtn.text(originalText).prop('disabled', false);
@@ -617,6 +839,7 @@
             return;
         }
 
+        console.log('✏️ Editando nota:', note);
         this.openNoteModal(note);
     };
 
@@ -624,7 +847,12 @@
     window.ConsoleMonitor.deleteAdvancedNote = function (noteId) {
         const self = this;
 
-        console.log('🗑️ Eliminando nota avanzada:', noteId);
+        console.log('🗑️ Eliminando nota ID:', noteId);
+
+        if (typeof cmData === 'undefined') {
+            alert('Error: Configuración no disponible');
+            return;
+        }
 
         $.post(cmData.ajax_url, {
             action: 'cm_delete_note',
@@ -632,36 +860,35 @@
             note_id: noteId
         })
             .done(function (response) {
-                console.log('🗑️ Respuesta eliminar nota avanzada:', response);
+                console.log('🗑️ Respuesta eliminar:', response);
 
-                if (response.success) {
-                    self.loadAdvancedNotes(); // Recargar lista
-                    // NUEVO: Recargar marcadores
+                if (response && response.success) {
+                    self.loadAdvancedNotes();
                     self.loadPageMarkers();
                     self.showNotification(response.data.message || 'Nota eliminada', 'success');
                 } else {
-                    console.error('🗑️ Error eliminando nota avanzada:', response.data);
-                    alert('❌ Error: ' + (response.data || 'Error desconocido'));
+                    console.error('❌ Error eliminando:', response);
+                    const errorMsg = (response && response.data) ? response.data : 'Error desconocido';
+                    alert('❌ Error: ' + errorMsg);
                 }
             })
             .fail(function (xhr, status, error) {
-                console.error('🗑️ AJAX Error eliminando nota avanzada:', { xhr, status, error });
-                alert('Error de conexión al eliminar nota avanzada');
+                console.error('❌ Error AJAX eliminando:', { xhr, status, error });
+                alert('Error de conexión al eliminar: ' + error);
             });
     };
 
     // Actualizar contador de notas avanzadas
     window.ConsoleMonitor.updateAdvancedNotesCount = function () {
         const count = this.state.advancedNotes.length;
-        // NUEVO: Mostrar también cuántas tienen marcador
         const markersCount = this.state.advancedNotes.filter(n => n.has_marker).length;
         $('#cm-notes .cm-notes-count').text(`${count} notas (${markersCount} marcadas)`);
-        console.log('📝 Contador de notas avanzadas actualizado:', count, 'marcadores:', markersCount);
+        console.log('📊 Contador actualizado:', count, 'marcadores:', markersCount);
     };
 
     // Mostrar error en notas avanzadas
     window.ConsoleMonitor.showAdvancedNotesError = function (message) {
-        const $container = this.elements.$notesContainer;
+        const $container = $('#cm-notes-container');
         if ($container.length) {
             $container.html(`
                 <div class="cm-notes-empty">
@@ -671,31 +898,33 @@
                 </div>
             `);
         }
+        console.error('❌ Error mostrado:', message);
     };
 
     // ========================================
-    // EVENTOS DEL SISTEMA BÁSICO (RÁPIDO) - CORREGIDO
+    // EVENTOS NOTAS BÁSICAS
     // ========================================
 
     window.ConsoleMonitor.bindSimpleNotesEvents = function () {
         const self = this;
+        console.log('🔗 Vinculando eventos de notas básicas...');
 
         // Toggle panel de notas básicas
-        $(document).on('click', '.cm-simple-toggle-btn', function (e) {
+        $(document).off('click.simpleToggle').on('click.simpleToggle', '.cm-simple-toggle-btn', function (e) {
             e.preventDefault();
             e.stopPropagation();
+
+            console.log('📋 Toggle notas básicas');
 
             const $widget = $('.cm-simple-notes-widget');
             if ($widget.is(':visible')) {
                 $widget.hide();
                 self.simpleNotes.isVisible = false;
-                // NUEVO: Cancelar selección de marcador
                 self.cancelMarkerSelection();
             } else {
                 $widget.show();
                 self.simpleNotes.isVisible = true;
                 self.loadSimpleNotes();
-                // NUEVO: Activar modo selección si no hay marcador
                 if (!self.simpleNotes.selectedMarker) {
                     setTimeout(() => {
                         self.startMarkerSelection('simple');
@@ -705,22 +934,21 @@
         });
 
         // Cerrar panel de notas básicas
-        $(document).on('click', '.cm-simple-btn-close', function (e) {
+        $(document).off('click.simpleClose').on('click.simpleClose', '.cm-simple-btn-close', function (e) {
             e.preventDefault();
             $('.cm-simple-notes-widget').hide();
             self.simpleNotes.isVisible = false;
-            // NUEVO: Cancelar selección de marcador
             self.cancelMarkerSelection();
         });
 
-        // NUEVO: Cambiar marcador en notas básicas
-        $(document).on('click', '.cm-simple-btn-change-marker', function (e) {
+        // Cambiar marcador en notas básicas
+        $(document).off('click.simpleChangeMarker').on('click.simpleChangeMarker', '.cm-simple-btn-change-marker', function (e) {
             e.preventDefault();
             self.startMarkerSelection('simple');
         });
 
         // Agregar nota básica
-        $(document).on('click', '.cm-simple-btn-add', function (e) {
+        $(document).off('click.simpleAdd').on('click.simpleAdd', '.cm-simple-btn-add', function (e) {
             e.preventDefault();
 
             const text = $('.cm-simple-note-input').val().trim();
@@ -730,7 +958,6 @@
                 return;
             }
 
-            // NUEVO: Validar marcador
             if (!self.simpleNotes.selectedMarker) {
                 alert('Debes marcar un punto en la página');
                 self.startMarkerSelection('simple');
@@ -741,15 +968,15 @@
         });
 
         // Enter para agregar nota básica
-        $(document).on('keypress', '.cm-simple-note-input', function (e) {
-            if (e.which === 13) { // Enter key
+        $(document).off('keypress.simpleInput').on('keypress.simpleInput', '.cm-simple-note-input', function (e) {
+            if (e.which === 13) {
                 e.preventDefault();
                 $('.cm-simple-btn-add').click();
             }
         });
 
         // Eliminar nota básica
-        $(document).on('click', '.cm-simple-note-delete', function (e) {
+        $(document).off('click.simpleDelete').on('click.simpleDelete', '.cm-simple-note-delete', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -761,60 +988,41 @@
             }
         });
 
-        // NUEVO: Click en nota básica (ir a marcador)
-        $(document).on('click', '.cm-simple-note-item.cm-simple-note-with-marker', function (e) {
-            // Solo si no se hizo click en el botón eliminar
+        // Click en nota básica para ir a marcador
+        $(document).off('click.simpleToMarker').on('click.simpleToMarker', '.cm-simple-note-item.cm-simple-note-with-marker', function (e) {
             if (!$(e.target).is('.cm-simple-note-delete') && !$(e.target).closest('.cm-simple-note-delete').length) {
                 const noteId = $(this).data('note-id');
                 self.goToMarker(noteId, 'simple');
             }
         });
 
-        // Cerrar al hacer click fuera - CORREGIDO FINAL
-        $(document).on('click', function (e) {
-            // NUEVO: No cerrar si estamos en modo selección O si es dentro de un elemento de la interfaz
-            if (self.state.isMarkerSelectionMode) {
-                return;
-            }
+        // Cerrar al hacer click fuera
+        $(document).off('click.simpleOutside').on('click.simpleOutside', function (e) {
+            if (self.state.isMarkerSelectionMode) return;
 
-            // Solo cerrar si estamos REALMENTE fuera de la interfaz
             if (self.simpleNotes.isVisible &&
                 !$(e.target).closest('.cm-simple-notes-widget, .cm-simple-toggle-btn, .cm-floating-container, .cm-panel, .cm-note-modal').length) {
                 $('.cm-simple-notes-widget').hide();
                 self.simpleNotes.isVisible = false;
-                // NUEVO: Cancelar selección de marcador
                 self.cancelMarkerSelection();
             }
         });
 
-        // ESC para cerrar notas básicas - MEJORADO
-        $(document).on('keyup', function (e) {
-            if (e.keyCode === 27) { // ESC
-                if (self.state.isMarkerSelectionMode) {
-                    // Si estamos en modo selección, solo cancelar selección
-                    self.cancelMarkerSelection();
-                } else if (self.simpleNotes.isVisible) {
-                    // Si no hay selección activa, cerrar widget
-                    $('.cm-simple-notes-widget').hide();
-                    self.simpleNotes.isVisible = false;
-                    self.cancelMarkerSelection();
-                }
-            }
-        });
+        console.log('✅ Eventos de notas básicas vinculados');
     };
 
     // ========================================
-    // FUNCIONES DEL SISTEMA BÁSICO
+    // FUNCIONES NOTAS BÁSICAS
     // ========================================
 
     // Cargar notas básicas
     window.ConsoleMonitor.loadSimpleNotes = function () {
         const self = this;
 
-        console.log('📝 Cargando notas básicas...');
+        console.log('📥 Cargando notas básicas...');
 
         if (typeof cmData === 'undefined') {
-            console.error('📝 cmData no disponible para notas básicas');
+            console.error('❌ cmData no disponible para notas básicas');
             alert('Error: Configuración no disponible');
             return;
         }
@@ -824,19 +1032,19 @@
             nonce: cmData.nonce
         })
             .done(function (response) {
-                console.log('📝 Respuesta notas básicas:', response);
+                console.log('📥 Respuesta notas básicas:', response);
 
-                if (response.success) {
+                if (response && response.success) {
                     self.simpleNotes.data = response.data.notes || [];
                     self.renderSimpleNotes();
                     self.updateSimpleNotesCount();
                 } else {
-                    console.error('📝 Error en respuesta básica:', response.data);
+                    console.error('❌ Error cargando notas básicas:', response);
                     alert('Error al cargar notas: ' + (response.data || 'Error desconocido'));
                 }
             })
             .fail(function (xhr, status, error) {
-                console.error('📝 AJAX Error notas básicas:', { xhr, status, error });
+                console.error('❌ Error AJAX notas básicas:', { xhr, status, error });
                 alert('Error de conexión al cargar notas básicas');
             });
     };
@@ -845,9 +1053,8 @@
     window.ConsoleMonitor.saveSimpleNote = function (text) {
         const self = this;
 
-        console.log('📝 Guardando nota básica:', text);
+        console.log('💾 Guardando nota básica:', text);
 
-        // NUEVO: Validar marcador antes de guardar
         if (!this.simpleNotes.selectedMarker) {
             alert('Debes marcar un punto en la página');
             return;
@@ -857,24 +1064,18 @@
             action: 'cm_save_simple_note',
             nonce: cmData.nonce,
             note_text: text,
-            // NUEVO: Enviar coordenadas del marcador
             marker_x: this.simpleNotes.selectedMarker.x,
             marker_y: this.simpleNotes.selectedMarker.y,
-            page_url: cmData.current_url
+            page_url: window.location.href
         })
             .done(function (response) {
-                console.log('📝 Nota básica guardada:', response);
+                console.log('💾 Nota básica guardada:', response);
 
-                if (response.success) {
-                    // Limpiar input
+                if (response && response.success) {
                     $('.cm-simple-note-input').val('');
-
-                    // Recargar lista
                     self.loadSimpleNotes();
-                    // NUEVO: Recargar marcadores
                     self.loadPageMarkers();
 
-                    // Mostrar éxito brevemente
                     const $btn = $('.cm-simple-btn-add');
                     const originalText = $btn.text();
                     $btn.text('✅ Guardada').prop('disabled', true);
@@ -882,17 +1083,16 @@
                         $btn.text(originalText).prop('disabled', false);
                     }, 1000);
 
-                    // NUEVO: Resetear marcador para próxima nota
                     self.simpleNotes.selectedMarker = null;
                     self.updateSimpleMarkerDisplay();
 
                 } else {
-                    console.error('📝 Error guardando nota básica:', response.data);
+                    console.error('❌ Error guardando nota básica:', response);
                     alert('❌ Error: ' + (response.data || 'Error desconocido'));
                 }
             })
             .fail(function (xhr, status, error) {
-                console.error('📝 AJAX Error guardando nota básica:', { xhr, status, error });
+                console.error('❌ Error AJAX guardando nota básica:', { xhr, status, error });
                 alert('Error de conexión al guardar nota básica');
             });
     };
@@ -909,20 +1109,18 @@
             note_id: noteId
         })
             .done(function (response) {
-                console.log('🗑️ Respuesta eliminar nota básica:', response);
+                console.log('🗑️ Nota básica eliminada:', response);
 
-                if (response.success) {
-                    // Recargar lista
+                if (response && response.success) {
                     self.loadSimpleNotes();
-                    // NUEVO: Recargar marcadores
                     self.loadPageMarkers();
                 } else {
-                    console.error('🗑️ Error eliminando nota básica:', response.data);
+                    console.error('❌ Error eliminando nota básica:', response);
                     alert('❌ Error: ' + (response.data || 'Error desconocido'));
                 }
             })
             .fail(function (xhr, status, error) {
-                console.error('🗑️ AJAX Error eliminando nota básica:', { xhr, status, error });
+                console.error('❌ Error AJAX eliminando nota básica:', { xhr, status, error });
                 alert('Error de conexión al eliminar nota básica');
             });
     };
@@ -932,11 +1130,11 @@
         const $list = $('.cm-simple-notes-list');
 
         if (!$list.length) {
-            console.warn('📝 Lista de notas básicas no encontrada');
+            console.warn('❌ Lista de notas básicas no encontrada');
             return;
         }
 
-        console.log('📝 Renderizando', this.simpleNotes.data.length, 'notas básicas');
+        console.log('🎨 Renderizando', this.simpleNotes.data.length, 'notas básicas');
 
         if (this.simpleNotes.data.length === 0) {
             $list.html(`
@@ -949,7 +1147,6 @@
             return;
         }
 
-        // NUEVO: Renderizar con información de marcadores
         const html = this.simpleNotes.data.map(note => {
             const noteClasses = ['cm-simple-note-item'];
             if (note.has_marker) {
@@ -982,10 +1179,10 @@
             $counter.hide();
         }
 
-        console.log('📝 Contador de notas básicas actualizado:', count);
+        console.log('📊 Contador notas básicas:', count);
     };
 
-    // NUEVO: Actualizar display del marcador en notas básicas
+    // Actualizar display del marcador en notas básicas
     window.ConsoleMonitor.updateSimpleMarkerDisplay = function () {
         const $instruction = $('.cm-simple-marker-instruction');
         const $selected = $('#cm-simple-marker-selected');
@@ -1000,35 +1197,35 @@
         }
     };
 
-    // Cargar solo el contador (para mostrar en el botón)
+    // Cargar solo el contador
     window.ConsoleMonitor.loadSimpleNotesCount = function () {
         const self = this;
 
-        // Solo cargar contador, no toda la interfaz
         $.post(cmData.ajax_url, {
             action: 'cm_get_simple_notes',
             nonce: cmData.nonce
         })
             .done(function (response) {
-                if (response.success) {
+                if (response && response.success) {
                     self.simpleNotes.data = response.data.notes || [];
                     self.updateSimpleNotesCount();
                 }
             })
             .fail(function () {
-                console.log('📝 Error cargando contador básico (silenciado)');
+                console.log('📊 Error cargando contador básico (silenciado)');
             });
     };
 
     // ========================================
-    // NUEVO: SISTEMA DE MARCADORES VISUALES - CORREGIDO
+    // SISTEMA DE MARCADORES VISUALES
     // ========================================
 
     window.ConsoleMonitor.bindMarkersEvents = function () {
         const self = this;
+        console.log('🔗 Vinculando eventos de marcadores...');
 
         // Click en marcador visual
-        $(document).on('click', '.cm-marker', function (e) {
+        $(document).off('click.marker').on('click.marker', '.cm-marker', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
@@ -1040,42 +1237,39 @@
                 self.highlightMarker($(this));
             }
         });
+
+        console.log('✅ Eventos de marcadores vinculados');
     };
 
-    // FUNCIÓN CORREGIDA - bindMarkerSelectionEvents
+    // Bindear eventos de selección de marcador
     window.ConsoleMonitor.bindMarkerSelectionEvents = function () {
         const self = this;
 
-        console.log('📍 Binding marker selection events');
+        console.log('🎯 Binding eventos de selección de marcador');
 
-        // Modo selección de marcadores - VERSIÓN CORREGIDA
+        // Click para seleccionar marcador
         $(document).off('click.markerSelection').on('click.markerSelection', function (e) {
             if (self.state.isMarkerSelectionMode) {
                 // Excluir elementos de interfaz
                 if ($(e.target).closest('.cm-note-modal, .cm-simple-notes-widget, .cm-floating-container, .cm-panel, .cm-marker-selection-indicator').length) {
-                    return; // No procesar si el click es en la interfaz
+                    return;
                 }
 
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Calcular coordenadas
                 const x = e.pageX;
                 const y = e.pageY;
-
-                // Obtener información del elemento
                 const element = e.target;
                 const elementInfo = self.getElementInfo(element);
 
-                // Establecer marcador seleccionado
                 self.setSelectedMarker(x, y, elementInfo);
             }
         });
 
-        // Prevent default en modo selección
+        // Prevenir default en modo selección
         $(document).off('mousedown.markerSelection').on('mousedown.markerSelection', function (e) {
             if (self.state.isMarkerSelectionMode) {
-                // Solo prevenir si NO es en la interfaz
                 if (!$(e.target).closest('.cm-note-modal, .cm-simple-notes-widget, .cm-floating-container, .cm-panel').length) {
                     e.preventDefault();
                 }
@@ -1083,18 +1277,18 @@
         });
     };
 
-    // Cargar marcadores de la página - VERSIÓN CORREGIDA
+    // Cargar marcadores de la página
     window.ConsoleMonitor.loadPageMarkers = function () {
         const self = this;
 
         console.log('📍 Cargando marcadores de la página...');
 
         if (typeof cmData === 'undefined') {
-            console.warn('📍 cmData no disponible para marcadores');
+            console.warn('❌ cmData no disponible para marcadores');
             return;
         }
 
-        // FIX: Verificar y reparar estado antes de cargar
+        // Verificar estado
         this.verifyAndRepairState();
 
         $.post(cmData.ajax_url, {
@@ -1104,67 +1298,59 @@
             .done(function (response) {
                 console.log('📍 Respuesta marcadores:', response);
 
-                if (response.success && response.data) {
-                    // FIX: Asegurar que la respuesta tenga la estructura correcta
-                    const markers = response.data.markers ? response.data.markers : [];
+                if (response && response.success && response.data) {
+                    const markers = response.data.markers || [];
 
-                    // FIX: Validar que markers es un array
                     if (Array.isArray(markers)) {
                         self.state.currentMarkers = markers.filter(marker => self.validateMarker(marker));
                     } else {
-                        console.warn('📍 Markers no es un array:', markers);
+                        console.warn('❌ Markers no es un array:', markers);
                         self.state.currentMarkers = [];
                     }
                 } else {
-                    console.error('📍 Error en respuesta marcadores:', response.data);
+                    console.error('❌ Error cargando marcadores:', response);
                     self.state.currentMarkers = [];
                 }
 
                 self.renderPageMarkers();
             })
             .fail(function (xhr, status, error) {
-                console.error('📍 AJAX Error cargando marcadores:', { xhr, status, error });
-                // FIX: Inicializar array vacío en caso de fallo
+                console.error('❌ Error AJAX cargando marcadores:', { xhr, status, error });
                 self.state.currentMarkers = [];
                 self.renderPageMarkers();
             });
     };
 
-    // Renderizar marcadores en la página - VERSIÓN CORREGIDA
+    // Renderizar marcadores en la página
     window.ConsoleMonitor.renderPageMarkers = function () {
         const $container = this.elements.$markersContainer;
 
         if (!$container || !$container.length) {
-            console.warn('📍 Contenedor de marcadores no encontrado');
+            console.warn('❌ Contenedor de marcadores no encontrado');
             return;
         }
 
-        // FIX: Asegurar que currentMarkers está inicializado
         if (!this.state.currentMarkers) {
             this.state.currentMarkers = [];
         }
 
-        // FIX: Verificar que currentMarkers es un array
         if (!Array.isArray(this.state.currentMarkers)) {
-            console.warn('📍 currentMarkers no es un array:', this.state.currentMarkers);
+            console.warn('❌ currentMarkers no es un array:', this.state.currentMarkers);
             this.state.currentMarkers = [];
             return;
         }
 
         console.log('📍 Renderizando', this.state.currentMarkers.length, 'marcadores');
 
-        // Limpiar marcadores existentes
         $container.empty();
 
         if (!this.state.markersVisible) {
             return;
         }
 
-        // Crear marcadores
         this.state.currentMarkers.forEach((marker, index) => {
-            // FIX: Validar que el marcador tiene las propiedades necesarias
             if (!marker || typeof marker !== 'object') {
-                console.warn('📍 Marcador inválido:', marker);
+                console.warn('❌ Marcador inválido:', marker);
                 return;
             }
 
@@ -1182,7 +1368,6 @@
             $container.append(markerHtml);
         });
 
-        // Animar entrada con delay
         $('.cm-marker').each(function (index) {
             $(this).css('animation-delay', (index * 0.1) + 's');
         });
@@ -1190,18 +1375,15 @@
 
     // Iniciar selección de marcador
     window.ConsoleMonitor.startMarkerSelection = function (noteType) {
-        console.log('📍 Iniciando selección de marcador para:', noteType);
+        console.log('🎯 Iniciando selección de marcador para:', noteType);
 
         this.state.isMarkerSelectionMode = true;
         this.state.currentNoteType = noteType;
 
-        // Bind eventos de selección
         this.bindMarkerSelectionEvents();
 
-        // Agregar clase al body
         $('body').addClass('cm-marker-selection-mode');
 
-        // Mostrar overlay e indicador
         $('body').append(`
             <div class="cm-marker-selection-overlay"></div>
             <div class="cm-marker-selection-indicator">
@@ -1209,82 +1391,67 @@
             </div>
         `);
 
-        // Ocultar marcadores existentes temporalmente
         $('.cm-marker').hide();
 
-        console.log('📍 Modo selección de marcador activado');
+        console.log('✅ Modo selección activado');
     };
 
     // Cancelar selección de marcador
     window.ConsoleMonitor.cancelMarkerSelection = function () {
         if (!this.state.isMarkerSelectionMode) return;
 
-        console.log('📍 Cancelando selección de marcador');
+        console.log('❌ Cancelando selección de marcador');
 
         this.state.isMarkerSelectionMode = false;
         this.state.currentNoteType = null;
 
-        // Remover eventos de selección
         $(document).off('click.markerSelection');
         $(document).off('mousedown.markerSelection');
 
-        // Remover clases y elementos
         $('body').removeClass('cm-marker-selection-mode');
         $('.cm-marker-selection-overlay').remove();
         $('.cm-marker-selection-indicator').remove();
 
-        // Mostrar marcadores existentes
         $('.cm-marker').show();
     };
 
     // Establecer marcador seleccionado
     window.ConsoleMonitor.setSelectedMarker = function (x, y, elementInfo) {
-        console.log('📍 Marcador seleccionado en:', x, y, elementInfo);
+        console.log('✅ Marcador seleccionado:', x, y, elementInfo);
 
-        // Cancelar modo selección
         this.cancelMarkerSelection();
 
         if (this.state.currentNoteType === 'advanced') {
-            // Para notas avanzadas
             this.state.selectedMarker = { x, y };
             this.showSelectedMarker(x, y, elementInfo);
-            // Enfocar título si el modal está abierto
             setTimeout(() => {
                 $('#cm-note-title').focus();
             }, 300);
         } else if (this.state.currentNoteType === 'simple') {
-            // Para notas básicas
             this.simpleNotes.selectedMarker = { x, y };
             this.updateSimpleMarkerDisplay();
-            // Enfocar input si el widget está abierto
             setTimeout(() => {
                 $('.cm-simple-note-input').focus();
             }, 300);
         }
 
-        // Mostrar marcador temporal
         this.showTemporaryMarker(x, y);
     };
 
     // Mostrar marcador temporal
     window.ConsoleMonitor.showTemporaryMarker = function (x, y) {
-        // Remover marcador temporal anterior
         $('.cm-temp-marker').remove();
 
-        // Crear marcador temporal
         const tempMarker = `
             <div class="cm-marker cm-temp-marker cm-marker-pulse" 
                  style="left: ${x}px; top: ${y}px; background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);">
                 🎯
-                <div class="cm-marker-tooltip">
-                    Nuevo marcador
-                </div>
+                <div class="cm-marker-tooltip">Nuevo marcador</div>
             </div>
         `;
 
         this.elements.$markersContainer.append(tempMarker);
 
-        // Remover después de 3 segundos
         setTimeout(() => {
             $('.cm-temp-marker').addClass('cm-marker-fade-out');
             setTimeout(() => {
@@ -1295,7 +1462,7 @@
 
     // Ir a marcador
     window.ConsoleMonitor.goToMarker = function (noteId, noteType) {
-        console.log('📍 Navegando a marcador:', noteId, noteType);
+        console.log('🎯 Navegando a marcador:', noteId, noteType);
 
         let marker = null;
 
@@ -1316,13 +1483,11 @@
             return;
         }
 
-        // Scroll suave al marcador
         $('html, body').animate({
-            scrollTop: marker.y - 100, // Offset para que no quede en el borde
+            scrollTop: marker.y - 100,
             scrollLeft: marker.x - 100
-        }, 800, 'easeInOutCubic');
+        }, 800);
 
-        // Destacar marcador
         setTimeout(() => {
             const $visualMarker = $(`.cm-marker[data-marker-id="${noteId}"][data-marker-type="${noteType}"]`);
             if ($visualMarker.length) {
@@ -1330,19 +1495,14 @@
             }
         }, 900);
 
-        // Mostrar notificación
         this.showNotification(`Navegando a: ${marker.title}`, 'info', 2000);
     };
 
     // Destacar marcador
     window.ConsoleMonitor.highlightMarker = function ($marker) {
-        // Remover highlight de otros marcadores
         $('.cm-marker').removeClass('cm-marker-highlight');
-
-        // Agregar highlight al marcador actual
         $marker.addClass('cm-marker-highlight');
 
-        // Remover highlight después de la animación
         setTimeout(() => {
             $marker.removeClass('cm-marker-highlight');
         }, 1000);
@@ -1364,7 +1524,7 @@
             this.showNotification('Marcadores ocultos', 'info', 1500);
         }
 
-        console.log('👁️ Marcadores', this.state.markersVisible ? 'mostrados' : 'ocultos');
+        console.log('👁️ Marcadores', this.state.markersVisible ? 'visibles' : 'ocultos');
     };
 
     // Obtener información del elemento
@@ -1383,7 +1543,6 @@
             }
         }
 
-        // Agregar texto si es corto
         const text = $(element).text().trim();
         if (text && text.length < 30) {
             info += ` "${text}"`;
@@ -1393,10 +1552,10 @@
     };
 
     // ========================================
-    // FUNCIONES DE VALIDACIÓN Y UTILIDADES ADICIONALES
+    // FUNCIONES DE VALIDACIÓN Y UTILIDADES
     // ========================================
 
-    // Función para validar estructura de marcador
+    // Validar marcador
     window.ConsoleMonitor.validateMarker = function (marker) {
         if (!marker || typeof marker !== 'object') {
             return false;
@@ -1411,66 +1570,24 @@
         );
     };
 
-    // Función para limpiar estado de marcadores
-    window.ConsoleMonitor.resetMarkersState = function () {
-        this.state.currentMarkers = [];
-        this.state.isMarkerSelectionMode = false;
-        this.state.selectedMarker = null;
-        this.state.currentNoteType = null;
-
-        // Limpiar elementos visuales
-        if (this.elements.$markersContainer && this.elements.$markersContainer.length) {
-            this.elements.$markersContainer.empty();
-        }
-
-        console.log('📍 Estado de marcadores reiniciado');
-    };
-
-    // Función para debug de marcadores
-    window.ConsoleMonitor.debugMarkers = function () {
-        console.log('📍 DEBUG MARCADORES:');
-        console.log('- currentMarkers:', this.state.currentMarkers);
-        console.log('- markersVisible:', this.state.markersVisible);
-        console.log('- isMarkerSelectionMode:', this.state.isMarkerSelectionMode);
-        console.log('- selectedMarker:', this.state.selectedMarker);
-        console.log('- markersContainer exists:', this.elements.$markersContainer?.length > 0);
-        console.log('- markers on page:', $('.cm-marker').length);
-
-        return {
-            state: {
-                currentMarkers: this.state.currentMarkers,
-                markersVisible: this.state.markersVisible,
-                isMarkerSelectionMode: this.state.isMarkerSelectionMode,
-                selectedMarker: this.state.selectedMarker
-            },
-            elements: {
-                markersContainer: this.elements.$markersContainer?.length || 0,
-                markersOnPage: $('.cm-marker').length
-            }
-        };
-    };
-
-    // Función para verificar y reparar estado
+    // Verificar y reparar estado
     window.ConsoleMonitor.verifyAndRepairState = function () {
         let repaired = false;
 
-        // Verificar currentMarkers
         if (!Array.isArray(this.state.currentMarkers)) {
-            console.warn('📍 Reparando currentMarkers...');
+            console.warn('🔧 Reparando currentMarkers...');
             this.state.currentMarkers = [];
             repaired = true;
         }
 
-        // Verificar markersVisible
         if (typeof this.state.markersVisible !== 'boolean') {
-            console.warn('📍 Reparando markersVisible...');
+            console.warn('🔧 Reparando markersVisible...');
             this.state.markersVisible = true;
             repaired = true;
         }
 
-        // Verificar contenedor de marcadores
         if (!this.elements.$markersContainer || this.elements.$markersContainer.length === 0) {
-            console.warn('📍 Reparando contenedor de marcadores...');
+            console.warn('🔧 Reparando contenedor de marcadores...');
             if ($('#cm-markers-container').length === 0) {
                 $('body').prepend('<div id="cm-markers-container" class="cm-markers-container"></div>');
             }
@@ -1479,16 +1596,13 @@
         }
 
         if (repaired) {
-            console.log('📍 Estado reparado exitosamente');
+            console.log('🔧 Estado reparado exitosamente');
         }
 
-        return !repaired; // retorna true si no necesitó reparación
+        return !repaired;
     };
 
-    // ========================================
-    // UTILIDADES COMPARTIDAS
-    // ========================================
-
+    // Función de escape HTML
     window.ConsoleMonitor.escapeHtml = function (text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -1496,11 +1610,77 @@
         return div.innerHTML;
     };
 
+    // Mostrar notificación
+    window.ConsoleMonitor.showNotification = function (message, type = 'info', duration = 3000) {
+        const colors = {
+            success: '#27ae60',
+            error: '#e74c3c',
+            info: '#3498db',
+            warning: '#f39c12'
+        };
+
+        const notification = $(`
+            <div class="cm-notification" style="background: ${colors[type]}; position: fixed; top: 20px; right: 20px; color: white; padding: 12px 20px; border-radius: 6px; z-index: 99999; transform: translateX(100%); transition: transform 0.3s ease;">
+                ${message}
+            </div>
+        `);
+
+        $('body').append(notification);
+
+        setTimeout(() => {
+            notification.css('transform', 'translateX(0)');
+        }, 100);
+
+        setTimeout(() => {
+            notification.css('transform', 'translateX(100%)');
+            setTimeout(() => notification.remove(), 300);
+        }, duration);
+    };
+
     // ========================================
-    // FUNCIONES DE TESTING Y DEBUG
+    // FUNCIONES DE DEBUG Y TESTING
     // ========================================
 
-    // Test sistema avanzado
+    // Debug completo del sistema
+    window.debugMarkerSystem = function () {
+        if (!window.ConsoleMonitor) {
+            console.error('❌ ConsoleMonitor no disponible');
+            return;
+        }
+
+        const cm = window.ConsoleMonitor;
+
+        console.log('🔍 DEBUG DEL SISTEMA DE MARCADORES:');
+        console.log('📍 Estado actual:', {
+            isMarkerSelectionMode: cm.state.isMarkerSelectionMode,
+            selectedMarker: cm.state.selectedMarker,
+            currentMarkers: cm.state.currentMarkers,
+            markersVisible: cm.state.markersVisible,
+            currentNoteType: cm.state.currentNoteType
+        });
+
+        console.log('📝 Notas avanzadas:', cm.state.advancedNotes);
+        console.log('📋 Notas básicas:', cm.simpleNotes.data);
+
+        console.log('🎯 Elementos DOM:', {
+            markersContainer: cm.elements.$markersContainer?.length || 0,
+            markersOnPage: $('.cm-marker').length,
+            modalOpen: cm.elements.$noteModal?.is(':visible') || false,
+            simpleWidgetOpen: $('.cm-simple-notes-widget').is(':visible')
+        });
+
+        return {
+            state: cm.state,
+            advancedNotes: cm.state.advancedNotes,
+            simpleNotes: cm.simpleNotes.data,
+            elements: {
+                markersContainer: cm.elements.$markersContainer?.length || 0,
+                markersOnPage: $('.cm-marker').length
+            }
+        };
+    };
+
+    // Test notas avanzadas
     window.testAdvancedNotes = function () {
         console.log('🧪 Testing advanced notes system');
 
@@ -1518,11 +1698,9 @@
             return;
         }
 
-        // Abrir modal
         $btn.click();
 
         setTimeout(() => {
-            // Llenar formulario de prueba
             $('#cm-note-title').val('Nota de prueba ' + Date.now());
             $('#cm-note-description').val('Descripción de prueba para notas avanzadas');
             $('#cm-note-url').val('https://ejemplo.com');
@@ -1531,7 +1709,7 @@
         }, 500);
     };
 
-    // Test sistema básico
+    // Test notas básicas
     window.testSimpleNotes = function () {
         console.log('🧪 Testing simple notes system');
 
@@ -1549,11 +1727,9 @@
             return;
         }
 
-        // Abrir panel
         $btn.click();
 
         setTimeout(() => {
-            // Agregar nota de prueba
             const testText = 'Nota básica de prueba ' + Date.now();
             $('.cm-simple-note-input').val(testText);
             $('.cm-simple-btn-add').click();
@@ -1562,13 +1738,12 @@
         }, 500);
     };
 
-    // NUEVO: Test sistema de marcadores
+    // Test sistema de marcadores
     window.testMarkersSystem = function () {
         console.log('🧪 Testing markers system');
 
         const cm = window.ConsoleMonitor;
 
-        // Simular algunos marcadores
         cm.state.currentMarkers = [
             { id: 1, type: 'advanced', title: 'Nota de prueba 1', x: 200, y: 300 },
             { id: 2, type: 'simple', title: 'Nota rápida 1', x: 400, y: 500 },
@@ -1578,7 +1753,6 @@
         cm.renderPageMarkers();
 
         setTimeout(() => {
-            // Simular click en primer marcador
             $('.cm-marker').first().click();
         }, 1000);
 
@@ -1609,13 +1783,13 @@
             'Widget notas básicas': $('.cm-simple-notes-widget').length > 0,
             'Lista notas básicas': $('.cm-simple-notes-list').length > 0,
 
-            // NUEVO: Sistema de marcadores
+            // Sistema de marcadores
             'Contenedor de marcadores': $('#cm-markers-container').length > 0,
             'Campos de coordenadas': $('#cm-marker-x, #cm-marker-y').length === 2,
             'Instrucciones de marcador': $('#cm-marker-instruction').length > 0,
             'Marcador seleccionado': $('#cm-marker-selected').length > 0,
 
-            // NUEVO: Funciones del sistema
+            // Funciones del sistema
             'Función startMarkerSelection': typeof window.ConsoleMonitor.startMarkerSelection === 'function',
             'Función goToMarker': typeof window.ConsoleMonitor.goToMarker === 'function',
             'Función loadPageMarkers': typeof window.ConsoleMonitor.loadPageMarkers === 'function',
@@ -1644,26 +1818,49 @@
         return checks;
     };
 
+    // ========================================
+    // AUTO-INICIALIZACIÓN Y EVENTOS GLOBALES
+    // ========================================
+
     // Auto-verificación al cargar
     setTimeout(function () {
         if (typeof window.ConsoleMonitor !== 'undefined') {
-            console.log('📍 Notes System with Visual Markers loaded successfully!');
-            console.log('🧪 Comandos disponibles:');
+            console.log('');
+            console.log('🎯 ===========================================');
+            console.log('🎯 CONSOLE MONITOR NOTES - VERSIÓN CORREGIDA');
+            console.log('🎯 ===========================================');
+            console.log('✅ Sistema cargado exitosamente');
+            console.log('');
+            console.log('🧪 Comandos de testing disponibles:');
             console.log('- testAdvancedNotes() : Test notas avanzadas');
             console.log('- testSimpleNotes() : Test notas básicas');
             console.log('- testMarkersSystem() : Test sistema de marcadores');
             console.log('- checkNotesConfig() : Verificar configuración completa');
+            console.log('- debugMarkerSystem() : Debug completo del sistema');
+            console.log('');
             console.log('📍 Funciones de marcadores:');
             console.log('- ConsoleMonitor.loadPageMarkers() : Cargar marcadores');
             console.log('- ConsoleMonitor.toggleMarkersVisibility() : Toggle visibilidad');
             console.log('- ConsoleMonitor.goToMarker(id, type) : Ir a marcador');
+            console.log('');
+            console.log('🔧 Debug adicional:');
+            console.log('- debugConsoleMonitor() : Diagnóstico completo');
+            console.log('🎯 ===========================================');
+            console.log('');
+
+            // Ejecutar debug inicial
+            setTimeout(debugConsoleMonitor, 1000);
 
             // Cargar marcadores automáticamente
             if (window.ConsoleMonitor.loadPageMarkers) {
-                window.ConsoleMonitor.loadPageMarkers();
+                setTimeout(() => {
+                    window.ConsoleMonitor.loadPageMarkers();
+                }, 2000);
             }
+        } else {
+            console.error('❌ ConsoleMonitor no se inicializó correctamente');
         }
-    }, 2000);
+    }, 3000);
 
     // Listener para cuando se abre el panel de notas
     $(document).on('cm:panel:opened', function (e, panelType) {
@@ -1691,199 +1888,130 @@
         }
     }, 2000);
 
-    console.log('📍 Console Monitor Notes with Visual Markers module loaded - VERSIÓN CORREGIDA COMPLETA');
+    // ========================================
+    // FUNCIONES GLOBALES ADICIONALES
+    // ========================================
+
+    // Función global para testing rápido de marcadores
+    window.testAdvancedNotesWithMarkers = function () {
+        console.log('🧪 Testing advanced notes with markers');
+
+        const $btn = $('.cm-btn-add-note');
+        if ($btn.length === 0) {
+            console.error('❌ Botón de notas avanzadas no encontrado');
+            return;
+        }
+
+        $btn.click();
+
+        setTimeout(() => {
+            console.log('🧪 Modal abierto, modo selección activado');
+            console.log('🎯 Haz clic en cualquier elemento para marcarlo');
+        }, 1000);
+    };
+
+    // Función global para testing rápido de notas básicas con marcadores  
+    window.testSimpleNotesWithMarkers = function () {
+        console.log('🧪 Testing simple notes with markers');
+
+        const $btn = $('.cm-simple-toggle-btn');
+        if ($btn.length === 0) {
+            console.error('❌ Botón de notas básicas no encontrado');
+            return;
+        }
+
+        $btn.click();
+
+        setTimeout(() => {
+            console.log('🧪 Widget abierto, modo selección activado');
+            console.log('🎯 Haz clic en cualquier elemento para marcarlo');
+        }, 500);
+    };
+
+    // Función para simular marcadores de prueba
+    window.simulateTestMarkers = function () {
+        if (!window.ConsoleMonitor) {
+            console.error('❌ ConsoleMonitor no disponible');
+            return;
+        }
+
+        const testMarkers = [
+            {
+                id: 999,
+                type: 'advanced',
+                title: 'Marcador de prueba 1',
+                x: Math.floor(Math.random() * window.innerWidth),
+                y: Math.floor(Math.random() * window.innerHeight)
+            },
+            {
+                id: 998,
+                type: 'simple',
+                title: 'Marcador de prueba 2',
+                x: Math.floor(Math.random() * window.innerWidth),
+                y: Math.floor(Math.random() * window.innerHeight)
+            }
+        ];
+
+        window.ConsoleMonitor.state.currentMarkers = testMarkers;
+        window.ConsoleMonitor.renderPageMarkers();
+
+        console.log('🧪 Marcadores de prueba creados:', testMarkers);
+
+        setTimeout(() => {
+            const $firstMarker = $('.cm-marker').first();
+            if ($firstMarker.length) {
+                console.log('🎯 Auto-clicking primer marcador...');
+                $firstMarker.click();
+            }
+        }, 2000);
+    };
+
+    // Función para limpiar marcadores de prueba
+    window.clearTestMarkers = function () {
+        if (!window.ConsoleMonitor) {
+            console.error('❌ ConsoleMonitor no disponible');
+            return;
+        }
+
+        window.ConsoleMonitor.state.currentMarkers = [];
+        window.ConsoleMonitor.elements.$markersContainer.empty();
+
+        console.log('🧹 Marcadores de prueba eliminados');
+    };
+
+    // Función para forzar recarga de marcadores
+    window.forceReloadMarkers = function () {
+        if (!window.ConsoleMonitor) {
+            console.error('❌ ConsoleMonitor no disponible');
+            return;
+        }
+
+        console.log('🔄 Forzando recarga de marcadores...');
+        window.ConsoleMonitor.loadPageMarkers();
+    };
+
+    // Función para toggle rápido de visibilidad
+    window.toggleMarkers = function () {
+        if (!window.ConsoleMonitor) {
+            console.error('❌ ConsoleMonitor no disponible');
+            return;
+        }
+
+        window.ConsoleMonitor.toggleMarkersVisibility();
+    };
+
+    // ========================================
+    // DIAGNÓSTICO FINAL
+    // ========================================
+
+    // Hacer función de debug disponible globalmente
+    window.debugConsoleMonitor = debugConsoleMonitor;
+
+    console.log('📦 Console Monitor Notes COMPLETO - VERSIÓN CORREGIDA Y OPTIMIZADA');
+    console.log('✅ Todas las funciones implementadas y corregidas');
+    console.log('✅ Sistema de debug mejorado');
+    console.log('✅ Manejo de errores robusto');
+    console.log('✅ Validaciones de dependencias');
+    console.log('✅ Funciones de testing incluidas');
 
 })(jQuery);
-
-// ========================================
-// FUNCIONES GLOBALES ADICIONALES
-// ========================================
-
-// Función global para testing rápido de marcadores
-window.testAdvancedNotesWithMarkers = function () {
-    console.log('🧪 Testing advanced notes with markers');
-
-    const $btn = $('.cm-btn-add-note');
-    if ($btn.length === 0) {
-        console.error('❌ Botón de notas avanzadas no encontrado');
-        return;
-    }
-
-    // Abrir modal
-    $btn.click();
-
-    setTimeout(() => {
-        console.log('🧪 Modal abierto, modo selección activado');
-        console.log('🎯 Haz clic en cualquier elemento para marcarlo');
-    }, 1000);
-};
-
-// Función global para testing rápido de notas básicas con marcadores  
-window.testSimpleNotesWithMarkers = function () {
-    console.log('🧪 Testing simple notes with markers');
-
-    const $btn = $('.cm-simple-toggle-btn');
-    if ($btn.length === 0) {
-        console.error('❌ Botón de notas básicas no encontrado');
-        return;
-    }
-
-    // Abrir panel
-    $btn.click();
-
-    setTimeout(() => {
-        console.log('🧪 Widget abierto, modo selección activado');
-        console.log('🎯 Haz clic en cualquier elemento para marcarlo');
-    }, 500);
-};
-
-// Función para simular marcadores de prueba
-window.simulateTestMarkers = function () {
-    if (!window.ConsoleMonitor) {
-        console.error('❌ ConsoleMonitor no disponible');
-        return;
-    }
-
-    // Crear marcadores de prueba
-    const testMarkers = [
-        {
-            id: 999,
-            type: 'advanced',
-            title: 'Marcador de prueba 1',
-            x: Math.floor(Math.random() * window.innerWidth),
-            y: Math.floor(Math.random() * window.innerHeight)
-        },
-        {
-            id: 998,
-            type: 'simple',
-            title: 'Marcador de prueba 2',
-            x: Math.floor(Math.random() * window.innerWidth),
-            y: Math.floor(Math.random() * window.innerHeight)
-        },
-        {
-            id: 997,
-            type: 'advanced',
-            title: 'Marcador de prueba 3',
-            x: Math.floor(Math.random() * window.innerWidth),
-            y: Math.floor(Math.random() * window.innerHeight)
-        }
-    ];
-
-    // Asignar marcadores de prueba
-    window.ConsoleMonitor.state.currentMarkers = testMarkers;
-    window.ConsoleMonitor.renderPageMarkers();
-
-    console.log('🧪 Marcadores de prueba creados:', testMarkers);
-    console.log('📍 Haz clic en los marcadores para probar la navegación');
-
-    // Auto-click en el primer marcador después de 2 segundos
-    setTimeout(() => {
-        const $firstMarker = $('.cm-marker').first();
-        if ($firstMarker.length) {
-            console.log('🎯 Auto-clicking primer marcador...');
-            $firstMarker.click();
-        }
-    }, 2000);
-};
-
-// Función para limpiar marcadores de prueba
-window.clearTestMarkers = function () {
-    if (!window.ConsoleMonitor) {
-        console.error('❌ ConsoleMonitor no disponible');
-        return;
-    }
-
-    // Limpiar marcadores
-    window.ConsoleMonitor.state.currentMarkers = [];
-    window.ConsoleMonitor.elements.$markersContainer.empty();
-
-    console.log('🧹 Marcadores de prueba eliminados');
-};
-
-// Función para debug completo del sistema
-window.debugMarkerSystem = function () {
-    if (!window.ConsoleMonitor) {
-        console.error('❌ ConsoleMonitor no disponible');
-        return;
-    }
-
-    const cm = window.ConsoleMonitor;
-
-    console.log('🔍 Debug del Sistema de Marcadores:');
-    console.log('📍 Estado actual:', {
-        isMarkerSelectionMode: cm.state.isMarkerSelectionMode,
-        selectedMarker: cm.state.selectedMarker,
-        currentMarkers: cm.state.currentMarkers,
-        markersVisible: cm.state.markersVisible,
-        currentNoteType: cm.state.currentNoteType
-    });
-
-    console.log('📝 Notas avanzadas:', cm.state.advancedNotes);
-    console.log('📋 Notas básicas:', cm.simpleNotes.data);
-
-    console.log('🎯 Elementos DOM:', {
-        markersContainer: cm.elements.$markersContainer?.length || 0,
-        markersOnPage: $('.cm-marker').length,
-        modalOpen: cm.elements.$noteModal?.is(':visible') || false,
-        simpleWidgetOpen: $('.cm-simple-notes-widget').is(':visible')
-    });
-
-    return {
-        state: cm.state,
-        advancedNotes: cm.state.advancedNotes,
-        simpleNotes: cm.simpleNotes.data,
-        elements: {
-            markersContainer: cm.elements.$markersContainer?.length || 0,
-            markersOnPage: $('.cm-marker').length
-        }
-    };
-};
-
-// Función para forzar recarga de marcadores
-window.forceReloadMarkers = function () {
-    if (!window.ConsoleMonitor) {
-        console.error('❌ ConsoleMonitor no disponible');
-        return;
-    }
-
-    console.log('🔄 Forzando recarga de marcadores...');
-    window.ConsoleMonitor.loadPageMarkers();
-};
-
-// Función para toggle rápido de visibilidad
-window.toggleMarkers = function () {
-    if (!window.ConsoleMonitor) {
-        console.error('❌ ConsoleMonitor no disponible');
-        return;
-    }
-
-    window.ConsoleMonitor.toggleMarkersVisibility();
-};
-
-// Auto-ejecución para configurar comandos de debug
-setTimeout(() => {
-    if (typeof window.ConsoleMonitor !== 'undefined') {
-        console.log('');
-        console.log('🎯 SISTEMA DE MARCADORES CARGADO - VERSIÓN CORREGIDA FINAL');
-        console.log('===============================================');
-        console.log('📍 Comandos de testing disponibles:');
-        console.log('• testAdvancedNotesWithMarkers() - Test notas avanzadas');
-        console.log('• testSimpleNotesWithMarkers() - Test notas básicas');
-        console.log('• testMarkersSystem() - Test sistema básico');
-        console.log('• simulateTestMarkers() - Crear marcadores de prueba');
-        console.log('• clearTestMarkers() - Limpiar marcadores de prueba');
-        console.log('• debugMarkerSystem() - Debug completo del sistema');
-        console.log('• forceReloadMarkers() - Forzar recarga');
-        console.log('• toggleMarkers() - Toggle visibilidad');
-        console.log('• checkNotesConfig() - Verificar configuración');
-        console.log('===============================================');
-        console.log('✅ Funciones críticas corregidas:');
-        console.log('  - bindMarkerSelectionEvents() ✅');
-        console.log('  - startNotesSelectionMode() ✅');
-        console.log('  - Eventos de selección de marcadores ✅');
-        console.log('  - Prevención de conflictos de interfaz ✅');
-        console.log('  - Error currentMarkers.length ✅');
-        console.log('===============================================');
-        console.log('');
-    }
-}, 3000);
